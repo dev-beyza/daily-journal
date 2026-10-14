@@ -167,7 +167,7 @@ function App() {
               <div className="flex gap-3 mb-6">
                 <input
                   type="text"
-                  placeholder="What needs to be done today?"
+                  placeholder="Add a new task..."
                   className={`flex-1 rounded-2xl px-5 py-4 outline-none font-semibold transition-all ${inputBg}`}
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
