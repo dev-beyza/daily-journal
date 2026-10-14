@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 function App() {
   const [todos, setTodos] = useState(() => JSON.parse(localStorage.getItem('todos')) || []);
@@ -6,6 +6,10 @@ function App() {
   const [isDarkMode, setIsDarkMode] = useState(() => JSON.parse(localStorage.getItem('darkMode')) || false);
   const [currentView, setCurrentView] = useState('home'); 
   const [inputValue, setInputValue] = useState('');
+
+  // --- SÜRÜKLE BIRAK REFLERİ ---
+  const dragItem = useRef();
+  const dragOverItem = useRef();
 
   const todayObj = new Date();
   const y = todayObj.getFullYear();
@@ -70,6 +74,20 @@ function App() {
     setTodos(todos.filter((todo) => todo.id !== id)); 
   };
 
+  // --- SÜRÜKLE BIRAK İŞLEMLERİ ---
+  const dragStart = (e, position) => { dragItem.current = position; };
+  const dragEnter = (e, position) => { dragOverItem.current = position; };
+  const drop = () => {
+    if (dragItem.current === null || dragOverItem.current === null) return;
+    const copyListItems = [...todos];
+    const dragItemContent = copyListItems[dragItem.current];
+    copyListItems.splice(dragItem.current, 1);
+    copyListItems.splice(dragOverItem.current, 0, dragItemContent);
+    dragItem.current = null;
+    dragOverItem.current = null;
+    setTodos(copyListItems);
+  };
+
   const getCompactCalendar = () => {
     const data = [];
     for (let i = 0; i < 12; i++) {
@@ -120,7 +138,7 @@ function App() {
         {currentView === 'home' ? (
           <>
             {/* ZİNCİR KARTI */}
-            <div onClick={() => setCurrentView('calendar')} className={`cursor-pointer rounded-[2.5rem] p-6 shadow-sm ${bgCard} hover:scale-[1.02] active:scale-95 transition-all duration-300 group`}>
+            <div onClick={() => setCurrentView('calendar')} className={`cursor-pointer rounded-[2.5rem] p-6 shadow-sm ${bgCard} hover:scale-[1.02] active:scale-95 transition-all duration-300`}>
               <div className="flex justify-between items-center mb-5">
                 <div className="flex items-center gap-4">
                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl ${isDarkMode ? 'bg-[#2C2C2E]' : 'bg-[#F2F2F7]'}`}>🔗</div>
@@ -157,22 +175,31 @@ function App() {
               </div>
 
               {todos.length === 0 ? (
-                <div className={`text-center py-8 font-semibold ${textMuted}`}>Your day is empty. Add a task to start your streak! 🎯</div>
+                <div className={`text-center py-8 font-semibold ${textMuted}`}>No tasks added yet ✨</div>
               ) : (
                 <ul className="flex flex-col">
-                  {todos.map((todo) => (
+                  {todos.map((todo, index) => (
                     <li 
                       key={todo.id}
-                      className={`flex items-center gap-4 py-4 border-b last:border-none group transition-colors ${isDarkMode ? 'border-[#2C2C2E]' : 'border-gray-100'}`}
+                      draggable
+                      onDragStart={(e) => dragStart(e, index)}
+                      onDragEnter={(e) => dragEnter(e, index)}
+                      onDragEnd={drop}
+                      className={`flex items-center gap-3 sm:gap-4 py-4 border-b last:border-none transition-colors ${isDarkMode ? 'border-[#2C2C2E]' : 'border-gray-100'}`}
                     >
+                      {/* Sürükleme İkonu */}
+                      <div className="text-gray-300 cursor-grab active:cursor-grabbing hover:text-gray-500 px-1 shrink-0">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" /></svg>
+                      </div>
+
                       <div onClick={() => toggleTodo(todo.id)} className={`w-7 h-7 shrink-0 cursor-pointer rounded-full border-[2.5px] flex items-center justify-center transition-all duration-300 ${todo.completed ? `${checkColor} scale-110` : isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
                         {todo.completed && <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                       </div>
                       
                       <span onClick={() => toggleTodo(todo.id)} className={`text-lg cursor-pointer font-semibold flex-1 transition-all duration-300 ${todo.completed ? 'text-gray-400 line-through opacity-50' : ''}`}>{todo.text}</span>
 
-                      {/* Silme Butonu: Mobilde hep görünür (opacity-100), bilgisayarda üzerine gelince görünür (md:opacity-0 md:group-hover:opacity-100) */}
-                      <button onClick={(e) => deleteTodo(todo.id, e)} className={`transition-all p-2 rounded-xl opacity-100 md:opacity-0 md:group-hover:opacity-100 ${isDarkMode ? 'text-gray-500 hover:text-red-400 hover:bg-[#2C2C2E]' : 'text-gray-300 hover:text-red-500 hover:bg-red-50'}`}>
+                      {/* Çarpı butonu: Her zaman zarifçe görünür */}
+                      <button onClick={(e) => deleteTodo(todo.id, e)} className={`transition-all p-2 rounded-xl ${isDarkMode ? 'text-gray-600 hover:text-red-400 hover:bg-[#2C2C2E]' : 'text-gray-300 hover:text-red-500 hover:bg-red-50'}`}>
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
                       </button>
                     </li>
