@@ -6,10 +6,13 @@ function App() {
   const [isDarkMode, setIsDarkMode] = useState(() => JSON.parse(localStorage.getItem('darkMode')) || false);
   const [currentView, setCurrentView] = useState('home'); 
   const [inputValue, setInputValue] = useState('');
+  
+  // Sadece ikona dokunulduğunda sürüklemeyi aktif etmek için yeni state
+  const [dragId, setDragId] = useState(null);
 
   // --- SÜRÜKLE BIRAK REFLERİ ---
-  const dragItem = useRef();
-  const dragOverItem = useRef();
+  const dragItem = useRef(null);
+  const dragOverItem = useRef(null);
 
   const todayObj = new Date();
   const y = todayObj.getFullYear();
@@ -74,11 +77,14 @@ function App() {
     setTodos(todos.filter((todo) => todo.id !== id)); 
   };
 
-  // --- BİLGİSAYAR VE TELEFON İÇİN SÜRÜKLE BIRAK İŞLEMLERİ ---
+  // --- SÜRÜKLE BIRAK İŞLEMLERİ ---
   const dragStart = (e, position) => { dragItem.current = position; };
   const dragEnter = (e, position) => { dragOverItem.current = position; };
   const drop = () => {
-    if (dragItem.current === null || dragOverItem.current === null || dragItem.current === dragOverItem.current) return;
+    if (dragItem.current === null || dragOverItem.current === null || dragItem.current === dragOverItem.current) {
+      setDragId(null);
+      return;
+    }
     const copyListItems = [...todos];
     const dragItemContent = copyListItems[dragItem.current];
     copyListItems.splice(dragItem.current, 1);
@@ -86,6 +92,7 @@ function App() {
     dragItem.current = null;
     dragOverItem.current = null;
     setTodos(copyListItems);
+    setDragId(null);
   };
 
   const getCompactCalendar = () => {
@@ -184,17 +191,19 @@ function App() {
                     <li 
                       key={todo.id}
                       data-index={index}
-                      draggable
+                      draggable={dragId === todo.id}
                       onDragStart={(e) => dragStart(e, index)}
                       onDragEnter={(e) => dragEnter(e, index)}
                       onDragEnd={drop}
                       onDragOver={(e) => e.preventDefault()}
                       className={`flex items-center gap-3 sm:gap-4 py-4 border-b last:border-none group transition-colors ${isDarkMode ? 'border-[#2C2C2E]' : 'border-gray-100'}`}
                     >
-                      {/* TELEFON UYUMLU SÜRÜKLEME İKONU (touch-none eklendi) */}
+                      {/* SADECE BU İKONA DOKUNULDUĞUNDA SÜRÜKLEME AKTİF OLUR */}
                       <div 
                         className="text-gray-300 cursor-grab active:cursor-grabbing hover:text-gray-500 px-1 shrink-0 touch-none"
-                        onTouchStart={() => { dragItem.current = index; }}
+                        onMouseEnter={() => setDragId(todo.id)}
+                        onMouseLeave={() => setDragId(null)}
+                        onTouchStart={() => { dragItem.current = index; setDragId(todo.id); }}
                         onTouchMove={(e) => {
                           const touch = e.touches[0];
                           const target = document.elementFromPoint(touch.clientX, touch.clientY);
@@ -210,12 +219,14 @@ function App() {
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" /></svg>
                       </div>
 
+                      {/* TIKLAMA ALANLARI (Sürükleme kapalı olduğu için kusursuz çalışır) */}
                       <div onClick={() => toggleTodo(todo.id)} className={`w-7 h-7 shrink-0 cursor-pointer rounded-full border-[2.5px] flex items-center justify-center transition-all duration-300 ${todo.completed ? `${checkColor} scale-110` : isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
                         {todo.completed && <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                       </div>
                       
                       <span onClick={() => toggleTodo(todo.id)} className={`text-lg cursor-pointer font-semibold flex-1 transition-all duration-300 ${todo.completed ? 'text-gray-400 line-through opacity-50' : ''}`}>{todo.text}</span>
 
+                      {/* Silme Butonu: Mobilde hep görünür, bilgisayarda üzerine gelince */}
                       <button onClick={(e) => deleteTodo(todo.id, e)} className={`transition-all p-2 rounded-xl opacity-100 md:opacity-0 md:group-hover:opacity-100 ${isDarkMode ? 'text-gray-500 hover:text-red-400 hover:bg-[#2C2C2E]' : 'text-gray-300 hover:text-red-500 hover:bg-red-50'}`}>
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
                       </button>
