@@ -74,11 +74,11 @@ function App() {
     setTodos(todos.filter((todo) => todo.id !== id)); 
   };
 
-  // --- SÜRÜKLE BIRAK İŞLEMLERİ ---
+  // --- BİLGİSAYAR VE TELEFON İÇİN SÜRÜKLE BIRAK İŞLEMLERİ ---
   const dragStart = (e, position) => { dragItem.current = position; };
   const dragEnter = (e, position) => { dragOverItem.current = position; };
   const drop = () => {
-    if (dragItem.current === null || dragOverItem.current === null) return;
+    if (dragItem.current === null || dragOverItem.current === null || dragItem.current === dragOverItem.current) return;
     const copyListItems = [...todos];
     const dragItemContent = copyListItems[dragItem.current];
     copyListItems.splice(dragItem.current, 1);
@@ -138,7 +138,7 @@ function App() {
         {currentView === 'home' ? (
           <>
             {/* ZİNCİR KARTI */}
-            <div onClick={() => setCurrentView('calendar')} className={`cursor-pointer rounded-[2.5rem] p-6 shadow-sm ${bgCard} hover:scale-[1.02] active:scale-95 transition-all duration-300`}>
+            <div onClick={() => setCurrentView('calendar')} className={`cursor-pointer rounded-[2.5rem] p-6 shadow-sm ${bgCard} hover:scale-[1.02] active:scale-95 transition-all duration-300 group`}>
               <div className="flex justify-between items-center mb-5">
                 <div className="flex items-center gap-4">
                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl ${isDarkMode ? 'bg-[#2C2C2E]' : 'bg-[#F2F2F7]'}`}>🔗</div>
@@ -175,20 +175,38 @@ function App() {
               </div>
 
               {todos.length === 0 ? (
-                <div className={`text-center py-8 font-semibold ${textMuted}`}>No tasks added yet ✨</div>
+                <div className={`text-center py-8 font-medium ${textMuted}`}>
+                  Your day is empty. Add a task to start your streak! 🎯
+                </div>
               ) : (
                 <ul className="flex flex-col">
                   {todos.map((todo, index) => (
                     <li 
                       key={todo.id}
+                      data-index={index}
                       draggable
                       onDragStart={(e) => dragStart(e, index)}
                       onDragEnter={(e) => dragEnter(e, index)}
                       onDragEnd={drop}
-                      className={`flex items-center gap-3 sm:gap-4 py-4 border-b last:border-none transition-colors ${isDarkMode ? 'border-[#2C2C2E]' : 'border-gray-100'}`}
+                      onDragOver={(e) => e.preventDefault()}
+                      className={`flex items-center gap-3 sm:gap-4 py-4 border-b last:border-none group transition-colors ${isDarkMode ? 'border-[#2C2C2E]' : 'border-gray-100'}`}
                     >
-                      {/* Sürükleme İkonu */}
-                      <div className="text-gray-300 cursor-grab active:cursor-grabbing hover:text-gray-500 px-1 shrink-0">
+                      {/* TELEFON UYUMLU SÜRÜKLEME İKONU (touch-none eklendi) */}
+                      <div 
+                        className="text-gray-300 cursor-grab active:cursor-grabbing hover:text-gray-500 px-1 shrink-0 touch-none"
+                        onTouchStart={() => { dragItem.current = index; }}
+                        onTouchMove={(e) => {
+                          const touch = e.touches[0];
+                          const target = document.elementFromPoint(touch.clientX, touch.clientY);
+                          if (target) {
+                            const li = target.closest('li[data-index]');
+                            if (li) {
+                              dragOverItem.current = Number(li.getAttribute('data-index'));
+                            }
+                          }
+                        }}
+                        onTouchEnd={drop}
+                      >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" /></svg>
                       </div>
 
@@ -198,8 +216,7 @@ function App() {
                       
                       <span onClick={() => toggleTodo(todo.id)} className={`text-lg cursor-pointer font-semibold flex-1 transition-all duration-300 ${todo.completed ? 'text-gray-400 line-through opacity-50' : ''}`}>{todo.text}</span>
 
-                      {/* Çarpı butonu: Her zaman zarifçe görünür */}
-                      <button onClick={(e) => deleteTodo(todo.id, e)} className={`transition-all p-2 rounded-xl ${isDarkMode ? 'text-gray-600 hover:text-red-400 hover:bg-[#2C2C2E]' : 'text-gray-300 hover:text-red-500 hover:bg-red-50'}`}>
+                      <button onClick={(e) => deleteTodo(todo.id, e)} className={`transition-all p-2 rounded-xl opacity-100 md:opacity-0 md:group-hover:opacity-100 ${isDarkMode ? 'text-gray-500 hover:text-red-400 hover:bg-[#2C2C2E]' : 'text-gray-300 hover:text-red-500 hover:bg-red-50'}`}>
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
                       </button>
                     </li>
