@@ -1,25 +1,45 @@
 import { useState, useEffect, useRef } from 'react';
 
 function App() {
-  const [todos, setTodos] = useState(() => JSON.parse(localStorage.getItem('todos')) || []);
+  const todayObj = new Date();
+  const y = todayObj.getFullYear();
+  const m = String(todayObj.getMonth() + 1).padStart(2, '0');
+  const d = String(todayObj.getDate()).padStart(2, '0');
+  const todayKey = `${y}-${m}-${d}`; 
+
+  // --- STATE'LER VE GÜNLÜK OTOMATİK SIFIRLAMA MANTIĞI ---
+  const [todos, setTodos] = useState(() => {
+    const savedTodos = localStorage.getItem('todos');
+    const lastActiveDate = localStorage.getItem('last_active_date');
+    
+    if (savedTodos) {
+      const parsedTodos = JSON.parse(savedTodos);
+      // Eğer son aktif olunan gün bugün değilse, yeni güne geçilmiştir -> Tikleri sıfırla!
+      if (lastActiveDate !== todayKey) {
+        return parsedTodos.map(todo => ({ ...todo, completed: false }));
+      }
+      return parsedTodos;
+    }
+    return [];
+  });
+
   const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('history')) || {});
   const [isDarkMode, setIsDarkMode] = useState(() => JSON.parse(localStorage.getItem('darkMode')) || false);
   const [currentView, setCurrentView] = useState('home'); 
   const [inputValue, setInputValue] = useState('');
   
   const [dragId, setDragId] = useState(null);
-
   const dragItem = useRef(null);
   const dragOverItem = useRef(null);
 
-  const todayObj = new Date();
-  const y = todayObj.getFullYear();
-  const m = String(todayObj.getMonth() + 1).padStart(2, '0');
-  const d = String(todayObj.getDate()).padStart(2, '0');
-  const todayKey = `${y}-${m}-${d}`; 
   const todayDateStr = new Intl.DateTimeFormat('en-US', { day: 'numeric', month: 'long', weekday: 'long' }).format(todayObj);
 
-  useEffect(() => { localStorage.setItem('todos', JSON.stringify(todos)); }, [todos]);
+  // --- HAFIZAYA KAYITLAR ---
+  useEffect(() => { 
+    localStorage.setItem('todos', JSON.stringify(todos)); 
+    localStorage.setItem('last_active_date', todayKey); // Son aktif olunan günü bugün olarak kaydet
+  }, [todos, todayKey]);
+
   useEffect(() => { localStorage.setItem('history', JSON.stringify(history)); }, [history]);
   useEffect(() => { localStorage.setItem('darkMode', JSON.stringify(isDarkMode)); }, [isDarkMode]);
 
@@ -193,7 +213,7 @@ function App() {
                       onDragEnter={(e) => dragEnter(e, index)}
                       onDragEnd={drop}
                       onDragOver={(e) => e.preventDefault()}
-                      className={`flex items-center gap-2 sm:gap-4 py-3 sm:py-4 border-b last:border-none transition-colors ${isDarkMode ? 'border-[#2C2C2E]' : 'border-gray-100'}`}
+                      className={`flex items-center gap-3 sm:gap-4 py-4 border-b last:border-none transition-colors ${isDarkMode ? 'border-[#2C2C2E]' : 'border-gray-100'}`}
                     >
                       {/* SÜRÜKLEME İKONU */}
                       <div 
@@ -206,7 +226,9 @@ function App() {
                           const target = document.elementFromPoint(touch.clientX, touch.clientY);
                           if (target) {
                             const li = target.closest('li[data-index]');
-                            if (li) { dragOverItem.current = Number(li.getAttribute('data-index')); }
+                            if (li) {
+                              dragOverItem.current = Number(li.getAttribute('data-index'));
+                            }
                           }
                         }}
                         onTouchEnd={drop}
@@ -214,7 +236,7 @@ function App() {
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" /></svg>
                       </div>
 
-                      {/* TIKLAMA ALANI (Button etiketi kullanıldı - iOS BUG KESİN ÇÖZÜM) */}
+                      {/* TIKLAMA ALANI */}
                       <button 
                         type="button"
                         onClick={() => toggleTodo(todo.id)} 
@@ -229,7 +251,7 @@ function App() {
                         </span>
                       </button>
 
-                      {/* SİLME BUTONU (Hover iptal edildi, hep görünür, sorunsuz) */}
+                      {/* SİLME BUTONU */}
                       <button onClick={(e) => deleteTodo(todo.id, e)} className={`p-2 rounded-xl transition-all ${isDarkMode ? 'text-gray-600 hover:text-red-400' : 'text-gray-300 hover:text-red-500'}`}>
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
                       </button>
