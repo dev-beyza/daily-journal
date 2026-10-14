@@ -7,10 +7,8 @@ function App() {
   const [currentView, setCurrentView] = useState('home'); 
   const [inputValue, setInputValue] = useState('');
   
-  // Sadece ikona dokunulduğunda sürüklemeyi aktif etmek için yeni state
   const [dragId, setDragId] = useState(null);
 
-  // --- SÜRÜKLE BIRAK REFLERİ ---
   const dragItem = useRef(null);
   const dragOverItem = useRef(null);
 
@@ -77,7 +75,6 @@ function App() {
     setTodos(todos.filter((todo) => todo.id !== id)); 
   };
 
-  // --- SÜRÜKLE BIRAK İŞLEMLERİ ---
   const dragStart = (e, position) => { dragItem.current = position; };
   const dragEnter = (e, position) => { dragOverItem.current = position; };
   const drop = () => {
@@ -145,7 +142,7 @@ function App() {
         {currentView === 'home' ? (
           <>
             {/* ZİNCİR KARTI */}
-            <div onClick={() => setCurrentView('calendar')} className={`cursor-pointer rounded-[2.5rem] p-6 shadow-sm ${bgCard} hover:scale-[1.02] active:scale-95 transition-all duration-300 group`}>
+            <div onClick={() => setCurrentView('calendar')} className={`cursor-pointer rounded-[2.5rem] p-6 shadow-sm ${bgCard} hover:scale-[1.02] active:scale-95 transition-all duration-300`}>
               <div className="flex justify-between items-center mb-5">
                 <div className="flex items-center gap-4">
                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl ${isDarkMode ? 'bg-[#2C2C2E]' : 'bg-[#F2F2F7]'}`}>🔗</div>
@@ -182,8 +179,8 @@ function App() {
               </div>
 
               {todos.length === 0 ? (
-                <div className={`text-center py-8 font-medium ${textMuted}`}>
-                  Your day is empty. Add a task to start your streak! 🎯
+                <div className={`text-center py-8 font-semibold ${textMuted}`}>
+                  No tasks added yet ✨
                 </div>
               ) : (
                 <ul className="flex flex-col">
@@ -196,11 +193,11 @@ function App() {
                       onDragEnter={(e) => dragEnter(e, index)}
                       onDragEnd={drop}
                       onDragOver={(e) => e.preventDefault()}
-                      className={`flex items-center gap-3 sm:gap-4 py-4 border-b last:border-none group transition-colors ${isDarkMode ? 'border-[#2C2C2E]' : 'border-gray-100'}`}
+                      className={`flex items-center gap-2 sm:gap-4 py-3 sm:py-4 border-b last:border-none transition-colors ${isDarkMode ? 'border-[#2C2C2E]' : 'border-gray-100'}`}
                     >
-                      {/* SADECE BU İKONA DOKUNULDUĞUNDA SÜRÜKLEME AKTİF OLUR */}
+                      {/* SÜRÜKLEME İKONU */}
                       <div 
-                        className="text-gray-300 cursor-grab active:cursor-grabbing hover:text-gray-500 px-1 shrink-0 touch-none"
+                        className="text-gray-300 cursor-grab active:cursor-grabbing px-2 shrink-0 touch-none"
                         onMouseEnter={() => setDragId(todo.id)}
                         onMouseLeave={() => setDragId(null)}
                         onTouchStart={() => { dragItem.current = index; setDragId(todo.id); }}
@@ -209,9 +206,7 @@ function App() {
                           const target = document.elementFromPoint(touch.clientX, touch.clientY);
                           if (target) {
                             const li = target.closest('li[data-index]');
-                            if (li) {
-                              dragOverItem.current = Number(li.getAttribute('data-index'));
-                            }
+                            if (li) { dragOverItem.current = Number(li.getAttribute('data-index')); }
                           }
                         }}
                         onTouchEnd={drop}
@@ -219,15 +214,23 @@ function App() {
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" /></svg>
                       </div>
 
-                      {/* TIKLAMA ALANLARI (Sürükleme kapalı olduğu için kusursuz çalışır) */}
-                      <div onClick={() => toggleTodo(todo.id)} className={`w-7 h-7 shrink-0 cursor-pointer rounded-full border-[2.5px] flex items-center justify-center transition-all duration-300 ${todo.completed ? `${checkColor} scale-110` : isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
-                        {todo.completed && <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
-                      </div>
-                      
-                      <span onClick={() => toggleTodo(todo.id)} className={`text-lg cursor-pointer font-semibold flex-1 transition-all duration-300 ${todo.completed ? 'text-gray-400 line-through opacity-50' : ''}`}>{todo.text}</span>
+                      {/* TIKLAMA ALANI (Button etiketi kullanıldı - iOS BUG KESİN ÇÖZÜM) */}
+                      <button 
+                        type="button"
+                        onClick={() => toggleTodo(todo.id)} 
+                        className="flex-1 flex items-center gap-3 sm:gap-4 text-left outline-none"
+                      >
+                        <div className={`w-7 h-7 shrink-0 cursor-pointer rounded-full border-[2.5px] flex items-center justify-center transition-all duration-300 ${todo.completed ? `${checkColor} scale-110` : isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
+                          {todo.completed && <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                        </div>
+                        
+                        <span className={`text-lg font-semibold flex-1 transition-all duration-300 ${todo.completed ? 'text-gray-400 line-through opacity-50' : ''}`}>
+                          {todo.text}
+                        </span>
+                      </button>
 
-                      {/* Silme Butonu: Mobilde hep görünür, bilgisayarda üzerine gelince */}
-                      <button onClick={(e) => deleteTodo(todo.id, e)} className={`transition-all p-2 rounded-xl opacity-100 md:opacity-0 md:group-hover:opacity-100 ${isDarkMode ? 'text-gray-500 hover:text-red-400 hover:bg-[#2C2C2E]' : 'text-gray-300 hover:text-red-500 hover:bg-red-50'}`}>
+                      {/* SİLME BUTONU (Hover iptal edildi, hep görünür, sorunsuz) */}
+                      <button onClick={(e) => deleteTodo(todo.id, e)} className={`p-2 rounded-xl transition-all ${isDarkMode ? 'text-gray-600 hover:text-red-400' : 'text-gray-300 hover:text-red-500'}`}>
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
                       </button>
                     </li>
