@@ -8,7 +8,6 @@ function App() {
   const dNum = String(todayObj.getDate()).padStart(2, '0');
   const todayKey = `${y}-${mNum}-${dNum}`; 
 
-  // Tutarlı ve eksiksiz tarih formatı (Örn: Sunday, 8 November)
   const dayNameOfWeek = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(todayObj);
   const monthNameLong = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(todayObj);
   const consistentDate = `${dayNameOfWeek}, ${d} ${monthNameLong}`;
@@ -173,7 +172,6 @@ function App() {
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg>
           </button>
         )}
-        {/* Her sayfada görünen o tutarlı Gün İsmi + Ay + Tarih */}
         <span className={`text-[11px] sm:text-xs font-bold uppercase tracking-widest ${textMuted}`}>{consistentDate}</span>
       </div>
       <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2.5 rounded-full transition-all active:scale-90 ${isDarkMode ? 'bg-[#1C1C1E] text-yellow-400' : 'bg-white text-[#5E5CE6] shadow-sm'}`}>
@@ -192,7 +190,6 @@ function App() {
             <div onClick={() => setCurrentView('home')} className="flex flex-col items-center justify-center cursor-pointer group mt-8 sm:mt-12">
               <h1 className="text-4xl font-extrabold mb-6 tracking-tight transition-transform group-hover:-translate-y-2 duration-500">Daily Journal</h1>
               
-              {/* İLK SAYFAYA EKLENEN DAY VURGUSU */}
               <div className={`mb-12 inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-black uppercase tracking-widest transition-all ${isDarkMode ? 'bg-[#2C2C2E] text-white' : 'bg-gray-200 text-gray-800'}`}>
                 Day {streakCount}
               </div>
@@ -207,7 +204,7 @@ function App() {
                   <span className={`text-sm font-bold uppercase tracking-widest mt-2 transition-opacity ${isCompleted ? 'opacity-100 text-emerald-500' : 'opacity-0'}`}>Completed</span>
                 </div>
               </div>
-              <p className={`mt-20 text-sm font-bold uppercase tracking-[0.2em] animate-pulse ${isDarkMode ? 'text-white' : 'text-black'}`}>Tap to enter</p>
+              <p className={`mt-20 text-sm font-bold uppercase tracking-[0.2em] animate-pulse ${isDarkMode ? 'text-white' : 'text-black'}`}>Start to build</p>
             </div>
           </div>
         )}
@@ -217,7 +214,7 @@ function App() {
             <Header onBack={() => setCurrentView('splash')} />
             
             <div className="px-2 mb-6">
-              <h1 className="text-5xl font-black tracking-tight leading-none mb-4">{dayNameOfWeek}</h1>
+              <h1 className="text-5xl font-black tracking-tight leading-none mb-4">Today</h1>
               <input type="text" placeholder="Set your daily intention..." value={dailyIntention} onChange={(e) => setDailyIntention(e.target.value)} className={`w-full text-base font-semibold outline-none bg-transparent transition-all border-b-2 border-transparent focus:border-gray-300 dark:focus:border-gray-700 pb-2 ${isDarkMode ? 'text-gray-200 placeholder-gray-600' : 'text-gray-800 placeholder-gray-400'}`} />
             </div>
 
@@ -271,7 +268,7 @@ function App() {
               </div>
 
               {todos.length === 0 ? (
-                <div className={`text-center py-8 font-bold ${textMuted}`}>Arena is empty. Add a mission! ⚔️</div>
+                <div className={`text-center py-8 font-bold ${textMuted}`}>No missions yet.</div>
               ) : (
                 <ul className="flex flex-col">
                   {todos.map((todo, index) => (
