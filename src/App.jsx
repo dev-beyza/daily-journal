@@ -3,16 +3,15 @@ import { useState, useEffect, useRef } from 'react';
 function App() {
   const todayObj = new Date();
   const y = todayObj.getFullYear();
-  const d = todayObj.getDate(); // Başında sıfır olmayan gün (Örn: 8)
+  const d = todayObj.getDate(); 
   const mNum = String(todayObj.getMonth() + 1).padStart(2, '0');
   const dNum = String(todayObj.getDate()).padStart(2, '0');
   const todayKey = `${y}-${mNum}-${dNum}`; 
 
+  // Tutarlı ve eksiksiz tarih formatı (Örn: Sunday, 8 November)
   const dayNameOfWeek = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(todayObj);
   const monthNameLong = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(todayObj);
-  
-  // İstenilen tutarlı "Gün Ay" formatı (Örn: 8 November)
-  const consistentDate = `${d} ${monthNameLong}`;
+  const consistentDate = `${dayNameOfWeek}, ${d} ${monthNameLong}`;
 
   const [todos, setTodos] = useState(() => {
     const savedTodos = localStorage.getItem('todos');
@@ -166,7 +165,6 @@ function App() {
   const darkPurpleBtn = isDarkMode ? 'bg-[#7D53F9] hover:bg-[#8F68FA]' : 'bg-[#5E5CE6] hover:bg-[#4C49C3]'; 
   const checkColor = isDarkMode ? 'bg-[#7D53F9] border-[#7D53F9]' : 'bg-[#5E5CE6] border-[#5E5CE6]';
 
-  // Yazısız Geri Dönüşlü Evrensel Header Bileşeni
   const Header = ({ onBack }) => (
     <div className="flex justify-between items-center w-full px-2 mb-8">
       <div className="flex items-center gap-2">
@@ -175,7 +173,8 @@ function App() {
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg>
           </button>
         )}
-        <span className={`text-sm font-bold uppercase tracking-widest ${textMuted}`}>{consistentDate}</span>
+        {/* Her sayfada görünen o tutarlı Gün İsmi + Ay + Tarih */}
+        <span className={`text-[11px] sm:text-xs font-bold uppercase tracking-widest ${textMuted}`}>{consistentDate}</span>
       </div>
       <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2.5 rounded-full transition-all active:scale-90 ${isDarkMode ? 'bg-[#1C1C1E] text-yellow-400' : 'bg-white text-[#5E5CE6] shadow-sm'}`}>
         {isDarkMode ? ( <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"/></svg> ) : ( <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/></svg> )}
@@ -190,8 +189,13 @@ function App() {
         {currentView === 'splash' && (
           <div className="animate-in fade-in duration-700">
             <Header />
-            <div onClick={() => setCurrentView('home')} className="flex flex-col items-center justify-center cursor-pointer group mt-16">
-              <h1 className="text-4xl font-extrabold mb-12 tracking-tight transition-transform group-hover:-translate-y-2 duration-500">Daily Journal</h1>
+            <div onClick={() => setCurrentView('home')} className="flex flex-col items-center justify-center cursor-pointer group mt-8 sm:mt-12">
+              <h1 className="text-4xl font-extrabold mb-6 tracking-tight transition-transform group-hover:-translate-y-2 duration-500">Daily Journal</h1>
+              
+              {/* İLK SAYFAYA EKLENEN DAY VURGUSU */}
+              <div className={`mb-12 inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-black uppercase tracking-widest transition-all ${isDarkMode ? 'bg-[#2C2C2E] text-white' : 'bg-gray-200 text-gray-800'}`}>
+                Day {streakCount}
+              </div>
               
               <div className={`relative flex items-center justify-center transition-all duration-700 transform group-hover:scale-110 active:scale-95 ${isCompleted ? 'drop-shadow-[0_0_25px_rgba(16,185,129,0.4)]' : ''}`}>
                 <svg className="w-[240px] h-[240px] transform -rotate-90" viewBox="0 0 200 200">
@@ -218,12 +222,9 @@ function App() {
             </div>
 
             <div className="flex flex-col gap-5">
-              
-              {/* Active Chain Kartı */}
               <div onClick={() => setCurrentView('calendar')} className={`cursor-pointer rounded-[2.5rem] p-6 shadow-sm ${bgCard} hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-between h-[130px]`}>
                 <div className="flex flex-col justify-center h-full">
                   <h2 className="text-2xl font-black tracking-tight mb-1">Active Chain</h2>
-                  {/* İstenilen "Day X" güncellemesi */}
                   <p className={`text-sm font-bold mb-2 ${textMuted}`}>Day {streakCount}</p>
                   <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${isDarkMode ? 'bg-[#2C2C2E] text-yellow-500' : 'bg-yellow-50 text-yellow-600 border border-yellow-100'}`}>
                     <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM5.5 5.5A.75.75 0 016 6v3.25a4.25 4.25 0 008.5 0V6a.75.75 0 011.5 0v3.25a5.75 5.75 0 01-11.5 0V6a.75.75 0 01.5-.5z" clipRule="evenodd" /><path fillRule="evenodd" d="M10 13a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 13z" clipRule="evenodd" /><path d="M6 18h8v1.5H6V18z" /></svg>
@@ -239,18 +240,15 @@ function App() {
                 </div>
               </div>
 
-              {/* Missions Kartı (Yuvarlağı küçültüldü) */}
               <div onClick={() => setCurrentView('tasks')} className={`cursor-pointer rounded-[2.5rem] p-6 shadow-sm ${bgCard} hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-between h-[130px]`}>
                 <div className="flex flex-col justify-center h-full">
                   <h2 className="text-2xl font-black tracking-tight mb-1">Missions</h2>
                   <p className={`text-sm font-bold ${textMuted}`}>{completedCount} of {todos.length} done</p>
                 </div>
-                {/* w-[56px] h-[56px] yapılarak zarifleştirildi */}
                 <div className={`w-[56px] h-[56px] rounded-full flex items-center justify-center shrink-0 transition-all ${isCompleted && todos.length > 0 ? getProgressBgColor(progressPercentage) : (isDarkMode ? 'bg-[#2C2C2E] text-white' : 'bg-gray-100 text-gray-800')}`}>
                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
                 </div>
               </div>
-
             </div>
           </div>
         )}
