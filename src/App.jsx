@@ -3,12 +3,16 @@ import { useState, useEffect, useRef } from 'react';
 function App() {
   const todayObj = new Date();
   const y = todayObj.getFullYear();
-  const d = String(todayObj.getDate()).padStart(2, '0');
+  const d = todayObj.getDate(); // Başında sıfır olmayan gün (Örn: 8)
   const mNum = String(todayObj.getMonth() + 1).padStart(2, '0');
-  const todayKey = `${y}-${mNum}-${d}`; 
+  const dNum = String(todayObj.getDate()).padStart(2, '0');
+  const todayKey = `${y}-${mNum}-${dNum}`; 
 
-  const dayName = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(todayObj);
-  const formattedDate = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric' }).format(todayObj);
+  const dayNameOfWeek = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(todayObj);
+  const monthNameLong = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(todayObj);
+  
+  // İstenilen tutarlı "Gün Ay" formatı (Örn: 8 November)
+  const consistentDate = `${d} ${monthNameLong}`;
 
   const [todos, setTodos] = useState(() => {
     const savedTodos = localStorage.getItem('todos');
@@ -129,10 +133,10 @@ function App() {
   const getCompactCalendar = () => {
     const data = [];
     for (let i = 0; i < 12; i++) {
-      const d = new Date(y, i, 1);
-      const monthName = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(d);
+      const tempDate = new Date(y, i, 1);
+      const mName = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(tempDate);
       const daysInMonth = new Date(y, i + 1, 0).getDate();
-      let startDay = d.getDay();
+      let startDay = tempDate.getDay();
       startDay = startDay === 0 ? 7 : startDay; 
       const days = [];
       for (let day = 1; day <= daysInMonth; day++) {
@@ -140,7 +144,7 @@ function App() {
         const dayStr = `${y}-${String(i + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         days.push({ dayNum: day, dateStr: dayStr, isFuture: currentDay > todayObj && dayStr !== todayKey });
       }
-      data.push({ monthName, startDay, days });
+      data.push({ monthName: mName, startDay, days });
     }
     return data;
   };
@@ -162,17 +166,16 @@ function App() {
   const darkPurpleBtn = isDarkMode ? 'bg-[#7D53F9] hover:bg-[#8F68FA]' : 'bg-[#5E5CE6] hover:bg-[#4C49C3]'; 
   const checkColor = isDarkMode ? 'bg-[#7D53F9] border-[#7D53F9]' : 'bg-[#5E5CE6] border-[#5E5CE6]';
 
-  // Evrensel Header Bileşeni
-  const Header = ({ onBack, backText }) => (
+  // Yazısız Geri Dönüşlü Evrensel Header Bileşeni
+  const Header = ({ onBack }) => (
     <div className="flex justify-between items-center w-full px-2 mb-8">
       <div className="flex items-center gap-2">
         {onBack && (
-          <button onClick={onBack} className={`flex items-center gap-1 text-sm font-bold transition-all ${textMuted} hover:text-gray-900 dark:hover:text-white mr-2`}>
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg>
-            {backText}
+          <button onClick={onBack} className={`flex items-center justify-center p-2 -ml-2 rounded-full transition-all ${textMuted} hover:text-gray-900 dark:hover:text-white`}>
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg>
           </button>
         )}
-        <span className={`text-sm font-bold uppercase tracking-widest ${textMuted}`}>{formattedDate}</span>
+        <span className={`text-sm font-bold uppercase tracking-widest ${textMuted}`}>{consistentDate}</span>
       </div>
       <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2.5 rounded-full transition-all active:scale-90 ${isDarkMode ? 'bg-[#1C1C1E] text-yellow-400' : 'bg-white text-[#5E5CE6] shadow-sm'}`}>
         {isDarkMode ? ( <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"/></svg> ) : ( <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/></svg> )}
@@ -207,21 +210,21 @@ function App() {
 
         {currentView === 'home' && (
           <div className="space-y-6 animate-in slide-in-from-right-8 fade-in duration-500">
-            <Header onBack={() => setCurrentView('splash')} backText="Gateway" />
+            <Header onBack={() => setCurrentView('splash')} />
             
             <div className="px-2 mb-6">
-              <p className={`text-xs font-bold uppercase tracking-widest mb-1 ${isDarkMode ? 'text-[#7D53F9]' : 'text-[#5E5CE6]'}`}>Level {streakCount}</p>
-              <h1 className="text-5xl font-black tracking-tight leading-none mb-4">{dayName}</h1>
+              <h1 className="text-5xl font-black tracking-tight leading-none mb-4">{dayNameOfWeek}</h1>
               <input type="text" placeholder="Set your daily intention..." value={dailyIntention} onChange={(e) => setDailyIntention(e.target.value)} className={`w-full text-base font-semibold outline-none bg-transparent transition-all border-b-2 border-transparent focus:border-gray-300 dark:focus:border-gray-700 pb-2 ${isDarkMode ? 'text-gray-200 placeholder-gray-600' : 'text-gray-800 placeholder-gray-400'}`} />
             </div>
 
-            {/* BİREBİR AYNI BOYUTTAKİ İKİZ KARTLAR */}
             <div className="flex flex-col gap-5">
               
               {/* Active Chain Kartı */}
               <div onClick={() => setCurrentView('calendar')} className={`cursor-pointer rounded-[2.5rem] p-6 shadow-sm ${bgCard} hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-between h-[130px]`}>
                 <div className="flex flex-col justify-center h-full">
                   <h2 className="text-2xl font-black tracking-tight mb-1">Active Chain</h2>
+                  {/* İstenilen "Day X" güncellemesi */}
+                  <p className={`text-sm font-bold mb-2 ${textMuted}`}>Day {streakCount}</p>
                   <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${isDarkMode ? 'bg-[#2C2C2E] text-yellow-500' : 'bg-yellow-50 text-yellow-600 border border-yellow-100'}`}>
                     <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM5.5 5.5A.75.75 0 016 6v3.25a4.25 4.25 0 008.5 0V6a.75.75 0 011.5 0v3.25a5.75 5.75 0 01-11.5 0V6a.75.75 0 01.5-.5z" clipRule="evenodd" /><path fillRule="evenodd" d="M10 13a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 13z" clipRule="evenodd" /><path d="M6 18h8v1.5H6V18z" /></svg>
                     Best: {bestRecord}
@@ -236,14 +239,15 @@ function App() {
                 </div>
               </div>
 
-              {/* Missions Kartı */}
+              {/* Missions Kartı (Yuvarlağı küçültüldü) */}
               <div onClick={() => setCurrentView('tasks')} className={`cursor-pointer rounded-[2.5rem] p-6 shadow-sm ${bgCard} hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-between h-[130px]`}>
                 <div className="flex flex-col justify-center h-full">
                   <h2 className="text-2xl font-black tracking-tight mb-1">Missions</h2>
                   <p className={`text-sm font-bold ${textMuted}`}>{completedCount} of {todos.length} done</p>
                 </div>
-                <div className={`w-[80px] h-[80px] rounded-full flex items-center justify-center shrink-0 transition-all ${isCompleted && todos.length > 0 ? getProgressBgColor(progressPercentage) : (isDarkMode ? 'bg-[#2C2C2E] text-white' : 'bg-gray-100 text-gray-800')}`}>
-                   <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
+                {/* w-[56px] h-[56px] yapılarak zarifleştirildi */}
+                <div className={`w-[56px] h-[56px] rounded-full flex items-center justify-center shrink-0 transition-all ${isCompleted && todos.length > 0 ? getProgressBgColor(progressPercentage) : (isDarkMode ? 'bg-[#2C2C2E] text-white' : 'bg-gray-100 text-gray-800')}`}>
+                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
                 </div>
               </div>
 
@@ -253,7 +257,7 @@ function App() {
 
         {currentView === 'tasks' && (
           <div className="space-y-6 animate-in slide-in-from-right-8 fade-in duration-500 w-full">
-            <Header onBack={() => setCurrentView('home')} backText="Home" />
+            <Header onBack={() => setCurrentView('home')} />
             
             <div className="mb-6 px-2">
               <h2 className="text-4xl font-black tracking-tight mb-4">Missions</h2>
@@ -294,15 +298,13 @@ function App() {
           </div>
         )}
 
-        {/* GENİŞLETİLMİŞ VE RAHAT TAKVİM (CALENDAR) */}
         {currentView === 'calendar' && (
           <div className="w-full animate-in slide-in-from-bottom-8 fade-in duration-300">
-            <Header onBack={() => setCurrentView('home')} backText="Home" />
+            <Header onBack={() => setCurrentView('home')} />
             
             <div className={`rounded-[2.5rem] p-6 sm:p-8 shadow-sm ${bgCard} w-full mt-4`}>
               <h2 className="text-3xl font-black tracking-tight mb-8">{y} History</h2>
               
-              {/* Artık 2 kolonlu, geniş ve ferah grid yapısı */}
               <div className="grid grid-cols-2 gap-x-6 gap-y-10">
                 {monthsData.map((month, index) => (
                   <div key={index} className="flex flex-col items-center">
