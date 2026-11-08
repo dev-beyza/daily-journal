@@ -11,10 +11,8 @@ function App() {
   const [todos, setTodos] = useState(() => {
     const savedTodos = localStorage.getItem('todos');
     const lastActiveDate = localStorage.getItem('last_active_date');
-    
     if (savedTodos) {
       const parsedTodos = JSON.parse(savedTodos);
-      // Eğer son aktif olunan gün bugün değilse, yeni güne geçilmiştir -> Tikleri sıfırla!
       if (lastActiveDate !== todayKey) {
         return parsedTodos.map(todo => ({ ...todo, completed: false }));
       }
@@ -28,20 +26,24 @@ function App() {
   const [currentView, setCurrentView] = useState('home'); 
   const [inputValue, setInputValue] = useState('');
   
+  // YENİ: Günün Odak Noktası ve En İyi Rekor (Best Record)
+  const [dailyIntention, setDailyIntention] = useState(() => localStorage.getItem(`intention-${todayKey}`) || '');
+  const [bestRecord, setBestRecord] = useState(() => JSON.parse(localStorage.getItem('bestRecord')) || 0);
+
   const [dragId, setDragId] = useState(null);
   const dragItem = useRef(null);
   const dragOverItem = useRef(null);
 
-  const todayDateStr = new Intl.DateTimeFormat('en-US', { day: 'numeric', month: 'long', weekday: 'long' }).format(todayObj);
-
   // --- HAFIZAYA KAYITLAR ---
   useEffect(() => { 
     localStorage.setItem('todos', JSON.stringify(todos)); 
-    localStorage.setItem('last_active_date', todayKey); // Son aktif olunan günü bugün olarak kaydet
+    localStorage.setItem('last_active_date', todayKey); 
   }, [todos, todayKey]);
 
   useEffect(() => { localStorage.setItem('history', JSON.stringify(history)); }, [history]);
   useEffect(() => { localStorage.setItem('darkMode', JSON.stringify(isDarkMode)); }, [isDarkMode]);
+  useEffect(() => { localStorage.setItem(`intention-${todayKey}`, dailyIntention); }, [dailyIntention, todayKey]);
+  useEffect(() => { localStorage.setItem('bestRecord', JSON.stringify(bestRecord)); }, [bestRecord]);
 
   const completedCount = todos.filter((t) => t.completed).length;
   const progressPercentage = todos.length > 0 ? Math.round((completedCount / todos.length) * 100) : 0;
@@ -54,6 +56,7 @@ function App() {
     }
   }, [progressPercentage, todos.length, todayKey]);
 
+  // Aktif Zincir Hesaplama (Eski adıyla Streak)
   const getStreak = () => {
     let count = 0;
     let curr = new Date(todayObj);
@@ -71,12 +74,29 @@ function App() {
   };
   const streakCount = getStreak();
 
-  const getProgressColor = (percent) => {
+  // YENİ: Rekor Kırma Mantığı
+  useEffect(() => {
+    if (streakCount > bestRecord) {
+      setBestRecord(streakCount);
+    }
+  }, [streakCount, bestRecord]);
+
+  // Takvim kutucukları için arkaplan renkleri
+  const getProgressBgColor = (percent) => {
     if (percent === 0 || percent === undefined) return isDarkMode ? 'bg-[#2C2C2E]' : 'bg-gray-100';
     if (percent < 35) return 'bg-rose-500 text-white'; 
     if (percent < 70) return 'bg-amber-500 text-white'; 
     if (percent < 100) return 'bg-lime-500 text-white'; 
     return 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/40'; 
+  };
+
+  // YENİ: Dairesel bar için SVG Stroke renkleri
+  const getProgressTextColor = (percent) => {
+    if (percent === 0 || percent === undefined) return isDarkMode ? 'text-[#2C2C2E]' : 'text-gray-200';
+    if (percent < 35) return 'text-rose-500'; 
+    if (percent < 70) return 'text-amber-500'; 
+    if (percent < 100) return 'text-lime-500'; 
+    return 'text-emerald-500'; 
   };
 
   const handleAddTodo = () => {
@@ -133,6 +153,12 @@ function App() {
   };
   const monthsData = getCompactCalendar();
 
+  // YENİ: Dairesel Bar Hesaplamaları
+  const radius = 38;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (progressPercentage / 100) * circumference;
+  const isCompleted = progressPercentage === 100;
+
   const bgApp = isDarkMode ? 'bg-black text-white' : 'bg-[#F2F2F7] text-gray-900';
   const bgCard = isDarkMode ? 'bg-[#1C1C1E] border border-[#2C2C2E]' : 'bg-white border border-gray-100';
   const textMuted = isDarkMode ? 'text-gray-400' : 'text-gray-500';
@@ -144,13 +170,24 @@ function App() {
     <div className={`min-h-screen ${bgApp} p-4 sm:p-8 font-sans transition-colors duration-500 flex items-center justify-center`}>
       <div className="w-full max-w-md space-y-6">
 
-        {/* BAŞLIK */}
-        <div className="flex justify-between items-end px-2">
-          <div>
-            <h1 className="text-4xl font-extrabold tracking-tight">Daily Journal</h1>
-            <p className={`text-sm font-semibold mt-1 ${textMuted}`}>{todayDateStr}</p>
+        {/* YENİ: BAŞLIK (Daha Büyük Tarih ve Günün Odağı) */}
+        <div className="flex justify-between items-start px-2 mb-2">
+          <div className="flex-1 pr-4">
+            <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight">
+              {d} {new Intl.DateTimeFormat('en-US', { month: 'short' }).format(todayObj)}
+            </h1>
+            <p className={`text-lg font-semibold mt-1 mb-3 ${textMuted}`}>
+              {new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(todayObj)}
+            </p>
+            <input
+              type="text"
+              placeholder="Daily intention: e.g. Stay focused and calm..."
+              value={dailyIntention}
+              onChange={(e) => setDailyIntention(e.target.value)}
+              className={`w-full text-sm sm:text-base font-medium outline-none bg-transparent transition-all border-b border-transparent focus:border-gray-300 dark:focus:border-gray-700 pb-1 ${isDarkMode ? 'text-gray-300 placeholder-gray-600' : 'text-gray-600 placeholder-gray-400'}`}
+            />
           </div>
-          <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-3 rounded-full transition-all active:scale-90 ${isDarkMode ? 'bg-[#1C1C1E] text-yellow-400' : 'bg-white text-[#5E5CE6] shadow-sm'}`}>
+          <button onClick={() => setIsDarkMode(!isDarkMode)} className={`mt-2 p-3 shrink-0 rounded-full transition-all active:scale-90 ${isDarkMode ? 'bg-[#1C1C1E] text-yellow-400' : 'bg-white text-[#5E5CE6] shadow-sm'}`}>
             {isDarkMode ? (
               <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"/></svg>
             ) : (
@@ -161,28 +198,45 @@ function App() {
 
         {currentView === 'home' ? (
           <>
-            {/* ZİNCİR KARTI */}
-            <div onClick={() => setCurrentView('calendar')} className={`cursor-pointer rounded-[2.5rem] p-6 shadow-sm ${bgCard} hover:scale-[1.02] active:scale-95 transition-all duration-300`}>
-              <div className="flex justify-between items-center mb-5">
-                <div className="flex items-center gap-4">
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl ${isDarkMode ? 'bg-[#2C2C2E]' : 'bg-[#F2F2F7]'}`}>🔗</div>
-                  <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Streak</h2>
-                    <p className={`text-sm font-semibold mt-0.5 ${textMuted}`}>{streakCount} Day Streak</p>
+            {/* YENİ: Dairesel Apple Fitness Tarzı Zincir Kartı */}
+            <div onClick={() => setCurrentView('calendar')} className={`cursor-pointer rounded-[2.5rem] p-6 shadow-sm ${bgCard} hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-between`}>
+              
+              {/* Sol Taraf: Aktif Zincir ve Rekor */}
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight">Active Chain</h2>
+                <div className="flex flex-col gap-2 mt-2">
+                  <p className={`text-base font-semibold ${textMuted}`}>Day {streakCount}</p>
+                  
+                  {/* Rekor Badge'i */}
+                  <div className={`inline-flex items-center self-start gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'bg-[#2C2C2E] text-yellow-500' : 'bg-yellow-50 text-yellow-600 border border-yellow-100'}`}>
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM5.5 5.5A.75.75 0 016 6v3.25a4.25 4.25 0 008.5 0V6a.75.75 0 011.5 0v3.25a5.75 5.75 0 01-11.5 0V6a.75.75 0 01.5-.5z" clipRule="evenodd" /><path fillRule="evenodd" d="M10 13a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 13z" clipRule="evenodd" /><path d="M6 18h8v1.5H6V18z" /></svg>
+                    Best: {bestRecord}
                   </div>
-                </div>
-                <div className="text-right">
-                  <h2 className="text-2xl font-bold tracking-tight">{progressPercentage}%</h2>
-                  <p className={`text-sm font-semibold mt-0.5 ${textMuted}`}>Progress</p>
                 </div>
               </div>
               
-              <div className={`w-full h-4 rounded-full overflow-hidden ${isDarkMode ? 'bg-[#2C2C2E]' : 'bg-[#F2F2F7]'}`}>
-                <div className={`h-full rounded-full transition-all duration-700 ease-out ${getProgressColor(progressPercentage)}`} style={{ width: `${progressPercentage}%` }}></div>
+              {/* Sağ Taraf: Dairesel İlerleme (SVG) */}
+              <div className="relative flex items-center justify-center">
+                <svg className="w-[100px] h-[100px] transform -rotate-90" viewBox="0 0 100 100">
+                  {/* Arkaplan Halkası */}
+                  <circle cx="50" cy="50" r={radius} stroke="currentColor" strokeWidth="8" fill="transparent" className={isDarkMode ? 'text-[#2C2C2E]' : 'text-gray-100'} />
+                  {/* Dolgu Halkası */}
+                  <circle cx="50" cy="50" r={radius} stroke="currentColor" strokeWidth="8" fill="transparent"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={strokeDashoffset}
+                    strokeLinecap="round"
+                    className={`transition-all duration-1000 ease-out ${getProgressTextColor(progressPercentage)} ${isCompleted ? 'drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]' : ''}`}
+                  />
+                </svg>
+                {/* Yüzde Yazısı */}
+                <div className="absolute flex flex-col items-center justify-center">
+                  <span className={`text-xl font-extrabold ${isCompleted ? (isDarkMode ? 'text-emerald-400' : 'text-emerald-500') : ''}`}>{progressPercentage}%</span>
+                </div>
               </div>
+
             </div>
 
-            {/* GÖREV LİSTESİ KARTI */}
+            {/* GÖREV LİSTESİ KARTI (Dokunmatik Sorunsuz Hali) */}
             <div className={`rounded-[2.5rem] p-6 shadow-sm ${bgCard} overflow-hidden`}>
               <div className="flex gap-3 mb-6">
                 <input
@@ -215,7 +269,6 @@ function App() {
                       onDragOver={(e) => e.preventDefault()}
                       className={`flex items-center gap-3 sm:gap-4 py-4 border-b last:border-none transition-colors ${isDarkMode ? 'border-[#2C2C2E]' : 'border-gray-100'}`}
                     >
-                      {/* SÜRÜKLEME İKONU */}
                       <div 
                         className="text-gray-300 cursor-grab active:cursor-grabbing px-2 shrink-0 touch-none"
                         onMouseEnter={() => setDragId(todo.id)}
@@ -236,7 +289,6 @@ function App() {
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" /></svg>
                       </div>
 
-                      {/* TIKLAMA ALANI */}
                       <button 
                         type="button"
                         onClick={() => toggleTodo(todo.id)} 
@@ -245,13 +297,11 @@ function App() {
                         <div className={`w-7 h-7 shrink-0 cursor-pointer rounded-full border-[2.5px] flex items-center justify-center transition-all duration-300 ${todo.completed ? `${checkColor} scale-110` : isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
                           {todo.completed && <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                         </div>
-                        
                         <span className={`text-lg font-semibold flex-1 transition-all duration-300 ${todo.completed ? 'text-gray-400 line-through opacity-50' : ''}`}>
                           {todo.text}
                         </span>
                       </button>
 
-                      {/* SİLME BUTONU */}
                       <button onClick={(e) => deleteTodo(todo.id, e)} className={`p-2 rounded-xl transition-all ${isDarkMode ? 'text-gray-600 hover:text-red-400' : 'text-gray-300 hover:text-red-500'}`}>
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
                       </button>
@@ -283,7 +333,7 @@ function App() {
                       const val = history[day.dateStr];
                       const percent = val === true ? 100 : val;
                       
-                      let bgColor = getProgressColor(percent);
+                      let bgColor = getProgressBgColor(percent);
                       if (day.isFuture) bgColor = isDarkMode ? 'bg-transparent text-gray-700' : 'bg-transparent text-gray-300';
                       else if (percent === undefined) bgColor = isDarkMode ? 'bg-[#2C2C2E] text-gray-400' : 'bg-gray-100 text-gray-400';
 
