@@ -3,9 +3,12 @@ import { useState, useEffect, useRef } from 'react';
 function App() {
   const todayObj = new Date();
   const y = todayObj.getFullYear();
-  const m = String(todayObj.getMonth() + 1).padStart(2, '0');
   const d = String(todayObj.getDate()).padStart(2, '0');
-  const todayKey = `${y}-${m}-${d}`; 
+  const mNum = String(todayObj.getMonth() + 1).padStart(2, '0');
+  const todayKey = `${y}-${mNum}-${d}`; 
+
+  const dayOfWeek = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(todayObj);
+  const monthDay = `${new Intl.DateTimeFormat('en-US', { month: 'short' }).format(todayObj)} ${d}`;
 
   const [todos, setTodos] = useState(() => {
     const savedTodos = localStorage.getItem('todos');
@@ -23,7 +26,7 @@ function App() {
   const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('history')) || {});
   const [isDarkMode, setIsDarkMode] = useState(() => JSON.parse(localStorage.getItem('darkMode')) || false);
   
-  // Uygulama ilk açıldığında 'splash' (Dev Halka) ekranı ile başlar
+  // Görünümler: 'splash', 'home', 'tasks', 'calendar'
   const [currentView, setCurrentView] = useState('splash'); 
   const [inputValue, setInputValue] = useState('');
   
@@ -113,10 +116,7 @@ function App() {
   const dragStart = (e, position) => { dragItem.current = position; };
   const dragEnter = (e, position) => { dragOverItem.current = position; };
   const drop = () => {
-    if (dragItem.current === null || dragOverItem.current === null || dragItem.current === dragOverItem.current) {
-      setDragId(null);
-      return;
-    }
+    if (dragItem.current === null || dragOverItem.current === null || dragItem.current === dragOverItem.current) return;
     const copyListItems = [...todos];
     const dragItemContent = copyListItems[dragItem.current];
     copyListItems.splice(dragItem.current, 1);
@@ -135,7 +135,6 @@ function App() {
       const daysInMonth = new Date(y, i + 1, 0).getDate();
       let startDay = d.getDay();
       startDay = startDay === 0 ? 7 : startDay; 
-      
       const days = [];
       for (let day = 1; day <= daysInMonth; day++) {
         const currentDay = new Date(y, i, day);
@@ -148,13 +147,11 @@ function App() {
   };
   const monthsData = getCompactCalendar();
 
-  // Mini Bar SVG 
   const radius = 38;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (progressPercentage / 100) * circumference;
   const isCompleted = progressPercentage === 100;
 
-  // Dev Splash Bar SVG
   const bigRadius = 90;
   const bigCircumference = 2 * Math.PI * bigRadius;
   const bigStrokeDashoffset = bigCircumference - (progressPercentage / 100) * bigCircumference;
@@ -167,208 +164,169 @@ function App() {
   const checkColor = isDarkMode ? 'bg-[#7D53F9] border-[#7D53F9]' : 'bg-[#5E5CE6] border-[#5E5CE6]';
 
   return (
-    <div className={`min-h-screen ${bgApp} p-4 sm:p-8 font-sans transition-colors duration-700 flex items-center justify-center overflow-hidden`}>
+    <div className={`min-h-screen ${bgApp} p-4 sm:p-8 font-sans transition-colors duration-700 flex items-center justify-center overflow-x-hidden`}>
       <div className="w-full max-w-md">
 
         {currentView === 'splash' && (
-          /* OYUNLAŞTIRILMIŞ GİRİŞ EKRANI (SPLASH) */
-          <div 
-            onClick={() => setCurrentView('home')} 
-            className="flex flex-col items-center justify-center cursor-pointer group h-[80vh] animate-in fade-in zoom-in-95 duration-700"
-          >
+          <div onClick={() => setCurrentView('home')} className="flex flex-col items-center justify-center cursor-pointer group h-[80vh] animate-in fade-in zoom-in-95 duration-700">
             <h1 className="text-4xl font-extrabold mb-12 tracking-tight transition-transform group-hover:-translate-y-2 duration-500">Daily Journal</h1>
-            
             <div className={`relative flex items-center justify-center transition-all duration-700 transform group-hover:scale-110 active:scale-95 ${isCompleted ? 'drop-shadow-[0_0_25px_rgba(16,185,129,0.4)]' : ''}`}>
               <svg className="w-[240px] h-[240px] transform -rotate-90" viewBox="0 0 200 200">
                 <circle cx="100" cy="100" r={bigRadius} stroke="currentColor" strokeWidth="12" fill="transparent" className={isDarkMode ? 'text-[#2C2C2E]' : 'text-gray-200'} />
-                <circle cx="100" cy="100" r={bigRadius} stroke="currentColor" strokeWidth="12" fill="transparent"
-                  strokeDasharray={bigCircumference}
-                  strokeDashoffset={bigStrokeDashoffset}
-                  strokeLinecap="round"
-                  className={`transition-all duration-1500 ease-out ${getProgressTextColor(progressPercentage)}`}
-                />
+                <circle cx="100" cy="100" r={bigRadius} stroke="currentColor" strokeWidth="12" fill="transparent" strokeDasharray={bigCircumference} strokeDashoffset={bigStrokeDashoffset} strokeLinecap="round" className={`transition-all duration-1500 ease-out ${getProgressTextColor(progressPercentage)}`} />
               </svg>
               <div className="absolute flex flex-col items-center">
                 <span className={`text-6xl font-black tracking-tighter ${isCompleted ? (isDarkMode ? 'text-emerald-400' : 'text-emerald-500') : ''}`}>{progressPercentage}%</span>
                 <span className={`text-sm font-bold uppercase tracking-widest mt-2 transition-opacity ${isCompleted ? 'opacity-100 text-emerald-500' : 'opacity-0'}`}>Completed</span>
               </div>
             </div>
-
             <p className={`mt-12 text-sm font-bold uppercase tracking-[0.2em] animate-pulse ${textMuted}`}>Tap to enter arena</p>
           </div>
         )}
 
-        {currentView !== 'splash' && (
-          <div className="space-y-6 animate-in slide-in-from-bottom-8 fade-in duration-500">
-            {/* PSİKOLOJİK TARİH VE ODAK BAŞLIĞI */}
-            <div className="flex justify-between items-start px-2 mb-2">
-              <div className="flex-1 pr-4">
-                <p className={`text-xs font-bold uppercase tracking-widest mb-1 ${isDarkMode ? 'text-[#7D53F9]' : 'text-[#5E5CE6]'}`}>
-                  Level {streakCount} • {new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(todayObj)}
-                </p>
-                <h1 className="text-4xl sm:text-5xl font-black tracking-tight leading-none mb-3">
-                  {new Intl.DateTimeFormat('en-US', { month: 'long' }).format(todayObj)} {d}
-                </h1>
-                <input
-                  type="text"
-                  placeholder="Set your daily mission..."
-                  value={dailyIntention}
-                  onChange={(e) => setDailyIntention(e.target.value)}
-                  className={`w-full text-base font-semibold outline-none bg-transparent transition-all border-b-2 border-transparent focus:border-gray-300 dark:focus:border-gray-700 pb-1 ${isDarkMode ? 'text-gray-200 placeholder-gray-600' : 'text-gray-800 placeholder-gray-400'}`}
-                />
-              </div>
-              <button onClick={() => setIsDarkMode(!isDarkMode)} className={`mt-1 p-3 shrink-0 rounded-2xl transition-all active:scale-90 ${isDarkMode ? 'bg-[#1C1C1E] text-yellow-400' : 'bg-white text-[#5E5CE6] shadow-sm'}`}>
-                {isDarkMode ? (
-                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"/></svg>
-                ) : (
-                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/></svg>
-                )}
+        {currentView === 'home' && (
+          <div className="space-y-6 animate-in slide-in-from-right-8 fade-in duration-500">
+            
+            {/* ÜST MENÜ & GERİ BUTONU */}
+            <div className="flex justify-between items-center px-2 mb-2">
+              <button onClick={() => setCurrentView('splash')} className={`flex items-center gap-1.5 text-sm font-bold transition-all ${textMuted} hover:text-gray-900 dark:hover:text-white`}>
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg>
+                Gateway
+              </button>
+              <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2.5 shrink-0 rounded-2xl transition-all active:scale-90 ${isDarkMode ? 'bg-[#1C1C1E] text-yellow-400' : 'bg-white text-[#5E5CE6] shadow-sm'}`}>
+                {isDarkMode ? ( <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"/></svg> ) : ( <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/></svg> )}
               </button>
             </div>
 
-            {currentView === 'home' && (
-              <>
-                {/* ZİNCİR KARTI */}
-                <div onClick={() => setCurrentView('calendar')} className={`cursor-pointer rounded-[2.5rem] p-6 shadow-sm ${bgCard} hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-between`}>
-                  <div>
-                    <h2 className="text-2xl font-black tracking-tight">Active Chain</h2>
-                    <div className="flex flex-col gap-2 mt-2">
-                      <p className={`text-base font-bold ${textMuted}`}>Day {streakCount}</p>
-                      <div className={`inline-flex items-center self-start gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${isDarkMode ? 'bg-[#2C2C2E] text-yellow-500' : 'bg-yellow-50 text-yellow-600 border border-yellow-100'}`}>
-                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM5.5 5.5A.75.75 0 016 6v3.25a4.25 4.25 0 008.5 0V6a.75.75 0 011.5 0v3.25a5.75 5.75 0 01-11.5 0V6a.75.75 0 01.5-.5z" clipRule="evenodd" /><path fillRule="evenodd" d="M10 13a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 13z" clipRule="evenodd" /><path d="M6 18h8v1.5H6V18z" /></svg>
-                        Best: {bestRecord}
-                      </div>
-                    </div>
+            {/* GÜN ODAKLI TARİH (Haftanın Günü Kocaman) */}
+            <div className="px-2 mb-6">
+              <p className={`text-xs font-bold uppercase tracking-widest mb-1 ${isDarkMode ? 'text-[#7D53F9]' : 'text-[#5E5CE6]'}`}>
+                {monthDay} • Level {streakCount}
+              </p>
+              <h1 className="text-5xl sm:text-6xl font-black tracking-tight leading-none mb-4">
+                {dayOfWeek}
+              </h1>
+              <input
+                type="text"
+                placeholder="Set your daily mission..."
+                value={dailyIntention}
+                onChange={(e) => setDailyIntention(e.target.value)}
+                className={`w-full text-base font-semibold outline-none bg-transparent transition-all border-b-2 border-transparent focus:border-gray-300 dark:focus:border-gray-700 pb-1 ${isDarkMode ? 'text-gray-200 placeholder-gray-600' : 'text-gray-800 placeholder-gray-400'}`}
+              />
+            </div>
+
+            {/* ZİNCİR KARTI (Ana İlerleme) */}
+            <div onClick={() => setCurrentView('calendar')} className={`cursor-pointer rounded-[2.5rem] p-6 shadow-sm ${bgCard} hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-between`}>
+              <div>
+                <h2 className="text-2xl font-black tracking-tight">Active Chain</h2>
+                <div className="flex flex-col gap-2 mt-2">
+                  <p className={`text-base font-bold ${textMuted}`}>Day {streakCount}</p>
+                  <div className={`inline-flex items-center self-start gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${isDarkMode ? 'bg-[#2C2C2E] text-yellow-500' : 'bg-yellow-50 text-yellow-600 border border-yellow-100'}`}>
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM5.5 5.5A.75.75 0 016 6v3.25a4.25 4.25 0 008.5 0V6a.75.75 0 011.5 0v3.25a5.75 5.75 0 01-11.5 0V6a.75.75 0 01.5-.5z" clipRule="evenodd" /><path fillRule="evenodd" d="M10 13a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 13z" clipRule="evenodd" /><path d="M6 18h8v1.5H6V18z" /></svg>
+                    Best: {bestRecord}
                   </div>
-                  
-                  <div className="relative flex items-center justify-center">
-                    <svg className="w-[100px] h-[100px] transform -rotate-90" viewBox="0 0 100 100">
-                      <circle cx="50" cy="50" r={radius} stroke="currentColor" strokeWidth="8" fill="transparent" className={isDarkMode ? 'text-[#2C2C2E]' : 'text-gray-100'} />
-                      <circle cx="50" cy="50" r={radius} stroke="currentColor" strokeWidth="8" fill="transparent"
-                        strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round"
-                        className={`transition-all duration-1000 ease-out ${getProgressTextColor(progressPercentage)} ${isCompleted ? 'drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]' : ''}`}
-                      />
-                    </svg>
-                    <div className="absolute flex flex-col items-center justify-center">
-                      <span className={`text-xl font-black ${isCompleted ? (isDarkMode ? 'text-emerald-400' : 'text-emerald-500') : ''}`}>{progressPercentage}%</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* GÖREV LİSTESİ */}
-                <div className={`rounded-[2.5rem] p-6 shadow-sm ${bgCard} overflow-hidden`}>
-                  <div className="flex gap-3 mb-6">
-                    <input
-                      type="text"
-                      placeholder="Add a new task..."
-                      className={`flex-1 rounded-2xl px-5 py-4 outline-none font-bold transition-all ${inputBg}`}
-                      value={inputValue}
-                      onChange={(e) => setInputValue(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAddTodo()}
-                    />
-                    <button onClick={handleAddTodo} className={`text-white px-6 py-4 rounded-2xl font-black active:scale-95 transition-all shadow-sm ${darkPurpleBtn}`}>
-                      Add
-                    </button>
-                  </div>
-
-                  {todos.length === 0 ? (
-                    <div className={`text-center py-8 font-bold ${textMuted}`}>
-                      Arena is empty. Add a mission! ⚔️
-                    </div>
-                  ) : (
-                    <ul className="flex flex-col">
-                      {todos.map((todo, index) => (
-                        <li 
-                          key={todo.id}
-                          data-index={index}
-                          draggable={dragId === todo.id}
-                          onDragStart={(e) => dragStart(e, index)}
-                          onDragEnter={(e) => dragEnter(e, index)}
-                          onDragEnd={drop}
-                          onDragOver={(e) => e.preventDefault()}
-                          className={`flex items-center gap-3 sm:gap-4 py-4 border-b last:border-none transition-colors ${isDarkMode ? 'border-[#2C2C2E]' : 'border-gray-100'}`}
-                        >
-                          <div 
-                            className="text-gray-300 cursor-grab active:cursor-grabbing px-2 shrink-0 touch-none"
-                            onMouseEnter={() => setDragId(todo.id)}
-                            onMouseLeave={() => setDragId(null)}
-                            onTouchStart={() => { dragItem.current = index; setDragId(todo.id); }}
-                            onTouchMove={(e) => {
-                              const touch = e.touches[0];
-                              const target = document.elementFromPoint(touch.clientX, touch.clientY);
-                              if (target) {
-                                const li = target.closest('li[data-index]');
-                                if (li) dragOverItem.current = Number(li.getAttribute('data-index'));
-                              }
-                            }}
-                            onTouchEnd={drop}
-                          >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 8h16M4 16h16" /></svg>
-                          </div>
-
-                          <button 
-                            type="button"
-                            onClick={() => toggleTodo(todo.id)} 
-                            className="flex-1 flex items-center gap-3 sm:gap-4 text-left outline-none group"
-                          >
-                            <div className={`w-7 h-7 shrink-0 cursor-pointer rounded-full border-[3px] flex items-center justify-center transition-all duration-300 group-active:scale-90 ${todo.completed ? `${checkColor} scale-110` : isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
-                              {todo.completed && <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg>}
-                            </div>
-                            <span className={`text-lg font-bold flex-1 transition-all duration-300 ${todo.completed ? 'text-gray-400 line-through opacity-50' : ''}`}>
-                              {todo.text}
-                            </span>
-                          </button>
-
-                          <button onClick={(e) => deleteTodo(todo.id, e)} className={`p-2 rounded-xl transition-all ${isDarkMode ? 'text-gray-600 hover:text-red-400' : 'text-gray-300 hover:text-red-500'}`}>
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </>
-            )}
-
-            {currentView === 'calendar' && (
-              <div className={`rounded-[2.5rem] p-6 shadow-sm ${bgCard} animate-in fade-in zoom-in-95 duration-300 w-full`}>
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-black tracking-tight">{y} Arena</h2>
-                  <button onClick={() => setCurrentView('home')} className={`px-5 py-2.5 rounded-2xl font-bold transition-all active:scale-95 ${isDarkMode ? 'bg-[#2C2C2E] text-white hover:bg-gray-700' : 'bg-[#F2F2F7] text-[#5E5CE6] hover:bg-gray-200'}`}>
-                    Back
-                  </button>
-                </div>
-                
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-x-2 gap-y-4">
-                  {monthsData.map((month, index) => (
-                    <div key={index} className="flex flex-col items-center">
-                      <h3 className={`text-[10px] sm:text-xs font-black uppercase mb-1 ${textMuted}`}>{month.monthName}</h3>
-                      <div className="grid grid-cols-7 gap-[2px]">
-                        {Array.from({ length: month.startDay - 1 }).map((_, i) => (
-                          <div key={`empty-${i}`} className="w-2.5 h-2.5 sm:w-3 sm:h-3"></div>
-                        ))}
-                        {month.days.map(day => {
-                          const val = history[day.dateStr];
-                          const percent = val === true ? 100 : val;
-                          
-                          let bgColor = getProgressBgColor(percent);
-                          if (day.isFuture) bgColor = isDarkMode ? 'bg-transparent text-gray-700' : 'bg-transparent text-gray-300';
-                          else if (percent === undefined) bgColor = isDarkMode ? 'bg-[#2C2C2E] text-gray-400' : 'bg-gray-100 text-gray-400';
-
-                          return (
-                            <div key={day.dateStr} className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-[2px] flex items-center justify-center text-[5px] sm:text-[7px] font-bold ${bgColor}`}>
-                              {day.dayNum}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
                 </div>
               </div>
-            )}
+              <div className="relative flex items-center justify-center">
+                <svg className="w-[100px] h-[100px] transform -rotate-90" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r={radius} stroke="currentColor" strokeWidth="8" fill="transparent" className={isDarkMode ? 'text-[#2C2C2E]' : 'text-gray-100'} />
+                  <circle cx="50" cy="50" r={radius} stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round" className={`transition-all duration-1000 ease-out ${getProgressTextColor(progressPercentage)} ${isCompleted ? 'drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]' : ''}`} />
+                </svg>
+                <div className="absolute flex flex-col items-center justify-center">
+                  <span className={`text-xl font-black ${isCompleted ? (isDarkMode ? 'text-emerald-400' : 'text-emerald-500') : ''}`}>{progressPercentage}%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* YENİ: YASSI GÖREV KAPSÜLÜ (Pill Button) */}
+            <div onClick={() => setCurrentView('tasks')} className={`cursor-pointer rounded-full p-4 sm:p-5 shadow-sm ${bgCard} hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-between`}>
+              <div className="flex items-center gap-4 pl-2">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-[#2C2C2E] text-white' : 'bg-gray-100 text-gray-800'}`}>
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+                </div>
+                <div>
+                  <h2 className="text-lg font-extrabold">Tasks</h2>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 pr-2">
+                <span className={`text-sm font-bold ${textMuted}`}>{completedCount}/{todos.length}</span>
+                <svg className={`w-5 h-5 ${textMuted}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
+              </div>
+            </div>
           </div>
         )}
+
+        {currentView === 'tasks' && (
+          <div className="space-y-6 animate-in slide-in-from-right-8 fade-in duration-500 w-full">
+            {/* GÖREVLER SAYFASI BAŞLIĞI */}
+            <div className="flex justify-between items-center mb-6 px-2">
+              <button onClick={() => setCurrentView('home')} className={`flex items-center gap-1.5 text-sm font-bold transition-all ${textMuted} hover:text-gray-900 dark:hover:text-white`}>
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg>
+                Back
+              </button>
+              <h2 className="text-2xl font-black tracking-tight">Today's Missions</h2>
+              <div className="w-16"></div> {/* Dengeleyici boşluk */}
+            </div>
+
+            {/* GÖREV LİSTESİ ALANI */}
+            <div className={`rounded-[2.5rem] p-6 shadow-sm ${bgCard} overflow-hidden`}>
+              <div className="flex gap-3 mb-6">
+                <input type="text" placeholder="Add a new task..." value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddTodo()} className={`flex-1 rounded-2xl px-5 py-4 outline-none font-bold transition-all ${inputBg}`} />
+                <button onClick={handleAddTodo} className={`text-white px-6 py-4 rounded-2xl font-black active:scale-95 transition-all shadow-sm ${darkPurpleBtn}`}>Add</button>
+              </div>
+
+              {todos.length === 0 ? (
+                <div className={`text-center py-8 font-bold ${textMuted}`}>Arena is empty. Add a mission! ⚔️</div>
+              ) : (
+                <ul className="flex flex-col">
+                  {todos.map((todo, index) => (
+                    <li key={todo.id} data-index={index} draggable={dragId === todo.id} onDragStart={(e) => dragStart(e, index)} onDragEnter={(e) => dragEnter(e, index)} onDragEnd={drop} onDragOver={(e) => e.preventDefault()} className={`flex items-center gap-3 sm:gap-4 py-4 border-b last:border-none transition-colors ${isDarkMode ? 'border-[#2C2C2E]' : 'border-gray-100'}`}>
+                      <div className="text-gray-300 cursor-grab active:cursor-grabbing px-2 shrink-0 touch-none" onMouseEnter={() => setDragId(todo.id)} onMouseLeave={() => setDragId(null)} onTouchStart={() => { dragItem.current = index; setDragId(todo.id); }} onTouchMove={(e) => { const touch = e.touches[0]; const target = document.elementFromPoint(touch.clientX, touch.clientY); if (target) { const li = target.closest('li[data-index]'); if (li) dragOverItem.current = Number(li.getAttribute('data-index')); } }} onTouchEnd={drop}>
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 8h16M4 16h16" /></svg>
+                      </div>
+                      <button type="button" onClick={() => toggleTodo(todo.id)} className="flex-1 flex items-center gap-3 sm:gap-4 text-left outline-none group">
+                        <div className={`w-7 h-7 shrink-0 cursor-pointer rounded-full border-[3px] flex items-center justify-center transition-all duration-300 group-active:scale-90 ${todo.completed ? `${checkColor} scale-110` : isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
+                          {todo.completed && <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg>}
+                        </div>
+                        <span className={`text-lg font-bold flex-1 transition-all duration-300 ${todo.completed ? 'text-gray-400 line-through opacity-50' : ''}`}>{todo.text}</span>
+                      </button>
+                      <button onClick={(e) => deleteTodo(todo.id, e)} className={`p-2 rounded-xl transition-all ${isDarkMode ? 'text-gray-600 hover:text-red-400' : 'text-gray-300 hover:text-red-500'}`}>
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        )}
+
+        {currentView === 'calendar' && (
+          <div className={`rounded-[2.5rem] p-6 shadow-sm ${bgCard} animate-in slide-in-from-bottom-8 fade-in duration-300 w-full`}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-black tracking-tight">{y} Arena</h2>
+              <button onClick={() => setCurrentView('home')} className={`px-5 py-2.5 rounded-2xl font-bold transition-all active:scale-95 ${isDarkMode ? 'bg-[#2C2C2E] text-white hover:bg-gray-700' : 'bg-[#F2F2F7] text-[#5E5CE6] hover:bg-gray-200'}`}>Back</button>
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-x-2 gap-y-4">
+              {monthsData.map((month, index) => (
+                <div key={index} className="flex flex-col items-center">
+                  <h3 className={`text-[10px] sm:text-xs font-black uppercase mb-1 ${textMuted}`}>{month.monthName}</h3>
+                  <div className="grid grid-cols-7 gap-[2px]">
+                    {Array.from({ length: month.startDay - 1 }).map((_, i) => (<div key={`empty-${i}`} className="w-2.5 h-2.5 sm:w-3 sm:h-3"></div>))}
+                    {month.days.map(day => {
+                      const val = history[day.dateStr]; const percent = val === true ? 100 : val;
+                      let bgColor = getProgressBgColor(percent);
+                      if (day.isFuture) bgColor = isDarkMode ? 'bg-transparent text-gray-700' : 'bg-transparent text-gray-300';
+                      else if (percent === undefined) bgColor = isDarkMode ? 'bg-[#2C2C2E] text-gray-400' : 'bg-gray-100 text-gray-400';
+                      return (<div key={day.dateStr} className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-[2px] flex items-center justify-center text-[5px] sm:text-[7px] font-bold ${bgColor}`}>{day.dayNum}</div>);
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
