@@ -12,6 +12,12 @@ function App() {
   const monthNameLong = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(todayObj);
   const consistentDate = `${dayNameOfWeek}, ${d} ${monthNameLong}`;
 
+  // Dinamik Karşılama (Good morning vs)
+  const hr = todayObj.getHours();
+  let greeting = 'Good evening';
+  if (hr < 12) greeting = 'Good morning';
+  else if (hr < 18) greeting = 'Good afternoon';
+
   const [todos, setTodos] = useState(() => {
     const savedTodos = localStorage.getItem('todos');
     const lastActiveDate = localStorage.getItem('last_active_date');
@@ -28,11 +34,18 @@ function App() {
   const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('history')) || {});
   const [isDarkMode, setIsDarkMode] = useState(() => JSON.parse(localStorage.getItem('darkMode')) || false);
   
+  // Görünümler: 'splash', 'home', 'tasks', 'calendar', 'timer'
   const [currentView, setCurrentView] = useState('splash'); 
   const [inputValue, setInputValue] = useState('');
   
-  const [dailyIntention, setDailyIntention] = useState(() => localStorage.getItem(`intention-${todayKey}`) || '');
+  // Intention artık evrensel ve silinene kadar kalıcı
+  const [dailyIntention, setDailyIntention] = useState(() => localStorage.getItem('dailyIntention') || '');
   const [bestRecord, setBestRecord] = useState(() => JSON.parse(localStorage.getItem('bestRecord')) || 0);
+
+  // Focus Timer State'leri
+  const [timeLeft, setTimeLeft] = useState(25 * 60);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [timerMode, setTimerMode] = useState('focus'); // 'focus' veya 'break'
 
   const [dragId, setDragId] = useState(null);
   const dragItem = useRef(null);
@@ -45,7 +58,7 @@ function App() {
 
   useEffect(() => { localStorage.setItem('history', JSON.stringify(history)); }, [history]);
   useEffect(() => { localStorage.setItem('darkMode', JSON.stringify(isDarkMode)); }, [isDarkMode]);
-  useEffect(() => { localStorage.setItem(`intention-${todayKey}`, dailyIntention); }, [dailyIntention, todayKey]);
+  useEffect(() => { localStorage.setItem('dailyIntention', dailyIntention); }, [dailyIntention]);
   useEffect(() => { localStorage.setItem('bestRecord', JSON.stringify(bestRecord)); }, [bestRecord]);
 
   const completedCount = todos.filter((t) => t.completed).length;
@@ -81,6 +94,37 @@ function App() {
       setBestRecord(streakCount);
     }
   }, [streakCount, bestRecord]);
+
+  // Timer Countdown Logic
+  useEffect(() => {
+    let interval = null;
+    if (isTimerRunning && timeLeft > 0) {
+      interval = setInterval(() => {
+        setTimeLeft(prev => prev - 1);
+      }, 1000);
+    } else if (timeLeft === 0 && isTimerRunning) {
+      setIsTimerRunning(false);
+      if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
+    }
+    return () => clearInterval(interval);
+  }, [isTimerRunning, timeLeft]);
+
+  const toggleTimer = () => setIsTimerRunning(!isTimerRunning);
+  const resetTimer = () => {
+    setIsTimerRunning(false);
+    setTimeLeft(timerMode === 'focus' ? 25 * 60 : 5 * 60);
+  };
+  const switchTimerMode = (mode) => {
+    setTimerMode(mode);
+    setIsTimerRunning(false);
+    setTimeLeft(mode === 'focus' ? 25 * 60 : 5 * 60);
+  };
+  
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
 
   const getProgressBgColor = (percent) => {
     if (percent === 0 || percent === undefined) return isDarkMode ? 'bg-[#2C2C2E]' : 'bg-gray-200';
@@ -187,24 +231,28 @@ function App() {
         {currentView === 'splash' && (
           <div className="animate-in fade-in duration-700">
             <Header />
-            <div onClick={() => setCurrentView('home')} className="flex flex-col items-center justify-center cursor-pointer group mt-8 sm:mt-12">
-              <h1 className="text-4xl font-extrabold mb-6 tracking-tight transition-transform group-hover:-translate-y-2 duration-500">Daily Journal</h1>
+            <div onClick={() => setCurrentView('home')} className="flex flex-col items-center justify-center cursor-pointer group mt-8 sm:mt-16">
               
-              <div className={`mb-12 inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-black uppercase tracking-widest transition-all ${isDarkMode ? 'bg-[#2C2C2E] text-white' : 'bg-gray-200 text-gray-800'}`}>
-                Day {streakCount}
-              </div>
+              <h1 className="text-4xl font-extrabold mb-10 tracking-tight transition-transform group-hover:-translate-y-2 duration-500">Daily Journal</h1>
               
               <div className={`relative flex items-center justify-center transition-all duration-700 transform group-hover:scale-110 active:scale-95 ${isCompleted ? 'drop-shadow-[0_0_25px_rgba(16,185,129,0.4)]' : ''}`}>
                 <svg className="w-[240px] h-[240px] transform -rotate-90" viewBox="0 0 200 200">
                   <circle cx="100" cy="100" r={bigRadius} stroke="currentColor" strokeWidth="12" fill="transparent" className={isDarkMode ? 'text-[#2C2C2E]' : 'text-gray-200'} />
                   <circle cx="100" cy="100" r={bigRadius} stroke="currentColor" strokeWidth="12" fill="transparent" strokeDasharray={bigCircumference} strokeDashoffset={bigStrokeDashoffset} strokeLinecap="round" className={`transition-all duration-1500 ease-out ${getProgressTextColor(progressPercentage)}`} />
                 </svg>
+                
                 <div className="absolute flex flex-col items-center">
+                  <span className={`text-xs font-black uppercase tracking-widest mb-1 ${textMuted}`}>Day {streakCount}</span>
                   <span className={`text-6xl font-black tracking-tighter ${isCompleted ? (isDarkMode ? 'text-emerald-400' : 'text-emerald-500') : ''}`}>{progressPercentage}%</span>
-                  <span className={`text-sm font-bold uppercase tracking-widest mt-2 transition-opacity ${isCompleted ? 'opacity-100 text-emerald-500' : 'opacity-0'}`}>Completed</span>
+                  <span className={`text-[10px] font-bold uppercase tracking-widest mt-1 transition-opacity ${isCompleted ? 'opacity-100 text-emerald-500' : 'opacity-0'}`}>Completed</span>
                 </div>
               </div>
-              <p className={`mt-20 text-sm font-bold uppercase tracking-[0.2em] animate-pulse ${isDarkMode ? 'text-white' : 'text-black'}`}>Start to build</p>
+              
+              {/* Motive Edici Call-to-Action */}
+              <p className={`mt-20 px-6 py-3 rounded-full text-sm font-bold uppercase tracking-[0.2em] transition-all animate-pulse ${isDarkMode ? 'bg-[#1C1C1E] text-white hover:bg-gray-800' : 'bg-gray-100 text-gray-900 hover:bg-gray-200'}`}>
+                Start to build
+              </p>
+              
             </div>
           </div>
         )}
@@ -214,15 +262,30 @@ function App() {
             <Header onBack={() => setCurrentView('splash')} />
             
             <div className="px-2 mb-6">
-              <h1 className="text-5xl font-black tracking-tight leading-none mb-4">Today</h1>
-              <input type="text" placeholder="Set your daily intention..." value={dailyIntention} onChange={(e) => setDailyIntention(e.target.value)} className={`w-full text-base font-semibold outline-none bg-transparent transition-all border-b-2 border-transparent focus:border-gray-300 dark:focus:border-gray-700 pb-2 ${isDarkMode ? 'text-gray-200 placeholder-gray-600' : 'text-gray-800 placeholder-gray-400'}`} />
+              <h1 className="text-4xl sm:text-5xl font-black tracking-tight leading-none mb-4">{greeting}</h1>
+              
+              <div className="relative">
+                <input 
+                  type="text" 
+                  placeholder="Set your focus for today..." 
+                  value={dailyIntention} 
+                  onChange={(e) => setDailyIntention(e.target.value)} 
+                  className={`w-full text-base font-semibold outline-none bg-transparent transition-all border-b-2 border-transparent focus:border-gray-300 dark:focus:border-gray-700 pb-2 pr-8 ${isDarkMode ? 'text-gray-200 placeholder-gray-600' : 'text-gray-800 placeholder-gray-400'}`} 
+                />
+                {dailyIntention && (
+                  <button onClick={() => setDailyIntention('')} className="absolute right-0 top-0.5 p-1 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                )}
+              </div>
             </div>
 
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-4 sm:gap-5 pb-6">
+              {/* Chain Card */}
               <div onClick={() => setCurrentView('calendar')} className={`cursor-pointer rounded-[2.5rem] p-6 shadow-sm ${bgCard} hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-between h-[130px]`}>
                 <div className="flex flex-col justify-center h-full">
-                  <h2 className="text-2xl font-black tracking-tight mb-1">Active Chain</h2>
-                  <p className={`text-sm font-bold mb-2 ${textMuted}`}>Day {streakCount}</p>
+                  <h2 className="text-2xl font-black tracking-tight mb-1">Chain</h2>
+                  <p className={`text-sm font-bold mb-2 ${textMuted}`}>Level {streakCount}</p>
                   <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${isDarkMode ? 'bg-[#2C2C2E] text-yellow-500' : 'bg-yellow-50 text-yellow-600 border border-yellow-100'}`}>
                     <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM5.5 5.5A.75.75 0 016 6v3.25a4.25 4.25 0 008.5 0V6a.75.75 0 011.5 0v3.25a5.75 5.75 0 01-11.5 0V6a.75.75 0 01.5-.5z" clipRule="evenodd" /><path fillRule="evenodd" d="M10 13a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 13z" clipRule="evenodd" /><path d="M6 18h8v1.5H6V18z" /></svg>
                     Best: {bestRecord}
@@ -237,15 +300,30 @@ function App() {
                 </div>
               </div>
 
+              {/* Tasks Card */}
               <div onClick={() => setCurrentView('tasks')} className={`cursor-pointer rounded-[2.5rem] p-6 shadow-sm ${bgCard} hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-between h-[130px]`}>
                 <div className="flex flex-col justify-center h-full">
-                  <h2 className="text-2xl font-black tracking-tight mb-1">Missions</h2>
+                  <h2 className="text-2xl font-black tracking-tight mb-1">Tasks</h2>
                   <p className={`text-sm font-bold ${textMuted}`}>{completedCount} of {todos.length} done</p>
                 </div>
                 <div className={`w-[56px] h-[56px] rounded-full flex items-center justify-center shrink-0 transition-all ${isCompleted && todos.length > 0 ? getProgressBgColor(progressPercentage) : (isDarkMode ? 'bg-[#2C2C2E] text-white' : 'bg-gray-100 text-gray-800')}`}>
                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
                 </div>
               </div>
+
+              {/* Focus Timer Card */}
+              <div onClick={() => setCurrentView('timer')} className={`cursor-pointer rounded-[2.5rem] p-6 shadow-sm ${bgCard} hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-between h-[130px]`}>
+                <div className="flex flex-col justify-center h-full">
+                  <h2 className="text-2xl font-black tracking-tight mb-1">Focus Timer</h2>
+                  <p className={`text-sm font-bold ${isTimerRunning ? 'text-emerald-500 animate-pulse' : textMuted}`}>
+                    {isTimerRunning ? `Running: ${formatTime(timeLeft)}` : (timerMode === 'focus' ? '25 Min Focus' : '5 Min Break')}
+                  </p>
+                </div>
+                <div className={`w-[56px] h-[56px] rounded-full flex items-center justify-center shrink-0 transition-all ${isTimerRunning ? 'bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.5)]' : (isDarkMode ? 'bg-[#2C2C2E] text-white' : 'bg-gray-100 text-gray-800')}`}>
+                   <svg className="w-6 h-6 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </div>
+              </div>
+
             </div>
           </div>
         )}
@@ -255,7 +333,7 @@ function App() {
             <Header onBack={() => setCurrentView('home')} />
             
             <div className="mb-6 px-2">
-              <h2 className="text-4xl font-black tracking-tight mb-4">Missions</h2>
+              <h2 className="text-4xl font-black tracking-tight mb-4">Tasks</h2>
               <div className={`w-full h-3 rounded-full overflow-hidden ${isDarkMode ? 'bg-[#2C2C2E]' : 'bg-gray-200'}`}>
                 <div className={`h-full rounded-full transition-all duration-700 ease-out ${getProgressBgColor(progressPercentage)}`} style={{ width: `${progressPercentage}%` }}></div>
               </div>
@@ -268,7 +346,7 @@ function App() {
               </div>
 
               {todos.length === 0 ? (
-                <div className={`text-center py-8 font-bold ${textMuted}`}>No missions yet.</div>
+                <div className={`text-center py-8 font-bold ${textMuted}`}>No tasks yet.</div>
               ) : (
                 <ul className="flex flex-col">
                   {todos.map((todo, index) => (
@@ -289,6 +367,44 @@ function App() {
                   ))}
                 </ul>
               )}
+            </div>
+          </div>
+        )}
+
+        {currentView === 'timer' && (
+          <div className="space-y-6 animate-in slide-in-from-right-8 fade-in duration-500 w-full">
+            <Header onBack={() => setCurrentView('home')} />
+            
+            <div className="mb-6 px-2 text-center">
+              <h2 className="text-4xl font-black tracking-tight mb-2">Focus Timer</h2>
+              <p className={`text-sm font-bold uppercase tracking-widest ${textMuted}`}>Pomodoro Technique</p>
+            </div>
+
+            <div className={`rounded-[2.5rem] p-8 sm:p-10 shadow-sm ${bgCard} flex flex-col items-center justify-center`}>
+              
+              <div className={`flex p-1.5 rounded-2xl mb-10 ${isDarkMode ? 'bg-[#2C2C2E]' : 'bg-gray-100'}`}>
+                <button onClick={() => switchTimerMode('focus')} className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all ${timerMode === 'focus' ? (isDarkMode ? 'bg-[#1C1C1E] text-white shadow-sm' : 'bg-white text-gray-900 shadow-sm') : textMuted}`}>Focus</button>
+                <button onClick={() => switchTimerMode('break')} className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all ${timerMode === 'break' ? (isDarkMode ? 'bg-[#1C1C1E] text-white shadow-sm' : 'bg-white text-gray-900 shadow-sm') : textMuted}`}>Break</button>
+              </div>
+
+              <div className={`text-7xl sm:text-8xl font-black tracking-tighter mb-12 tabular-nums transition-colors duration-500 ${isTimerRunning ? 'text-emerald-500' : (isDarkMode ? 'text-white' : 'text-gray-900')}`}>
+                {formatTime(timeLeft)}
+              </div>
+
+              <div className="flex items-center gap-6">
+                <button onClick={resetTimer} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all active:scale-90 ${isDarkMode ? 'bg-[#2C2C2E] text-gray-400 hover:text-white' : 'bg-gray-100 text-gray-500 hover:text-gray-900'}`}>
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                </button>
+                
+                <button onClick={toggleTimer} className={`w-20 h-20 rounded-full flex items-center justify-center transition-all active:scale-95 shadow-lg ${isTimerRunning ? 'bg-amber-500 text-white shadow-amber-500/40' : 'bg-emerald-500 text-white shadow-emerald-500/40'}`}>
+                  {isTimerRunning ? (
+                    <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                  ) : (
+                    <svg className="w-9 h-9 ml-1" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
+                  )}
+                </button>
+              </div>
+
             </div>
           </div>
         )}
