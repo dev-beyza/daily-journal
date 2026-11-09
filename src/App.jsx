@@ -12,7 +12,7 @@ function App() {
   const monthNameLong = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(todayObj);
   const consistentDate = `${dayNameOfWeek}, ${d} ${monthNameLong}`;
 
-  // Dinamik Karşılama (Good morning vs)
+  // Dinamik Karşılama
   const hr = todayObj.getHours();
   let greeting = 'Good evening';
   if (hr < 12) greeting = 'Good morning';
@@ -34,18 +34,28 @@ function App() {
   const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('history')) || {});
   const [isDarkMode, setIsDarkMode] = useState(() => JSON.parse(localStorage.getItem('darkMode')) || false);
   
-  // Görünümler: 'splash', 'home', 'tasks', 'calendar', 'timer'
   const [currentView, setCurrentView] = useState('splash'); 
   const [inputValue, setInputValue] = useState('');
   
-  // Intention artık evrensel ve silinene kadar kalıcı
+  // Intention State ve Akıllı Odaklanma (Focus) Kontrolü
   const [dailyIntention, setDailyIntention] = useState(() => localStorage.getItem('dailyIntention') || '');
+  const [isIntentionFocused, setIsIntentionFocused] = useState(false);
   const [bestRecord, setBestRecord] = useState(() => JSON.parse(localStorage.getItem('bestRecord')) || 0);
 
-  // Focus Timer State'leri
+  // Timer Ana Modları: 'pomodoro', 'stopwatch', 'clock'
+  const [mainTimerMode, setMainTimerMode] = useState('pomodoro');
+  
+  // Pomodoro State
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [timerMode, setTimerMode] = useState('focus'); // 'focus' veya 'break'
+
+  // Stopwatch State
+  const [stopwatchTime, setStopwatchTime] = useState(0);
+  const [isStopwatchRunning, setIsStopwatchRunning] = useState(false);
+
+  // Clock State
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   const [dragId, setDragId] = useState(null);
   const dragItem = useRef(null);
@@ -55,7 +65,6 @@ function App() {
     localStorage.setItem('todos', JSON.stringify(todos)); 
     localStorage.setItem('last_active_date', todayKey); 
   }, [todos, todayKey]);
-
   useEffect(() => { localStorage.setItem('history', JSON.stringify(history)); }, [history]);
   useEffect(() => { localStorage.setItem('darkMode', JSON.stringify(isDarkMode)); }, [isDarkMode]);
   useEffect(() => { localStorage.setItem('dailyIntention', dailyIntention); }, [dailyIntention]);
@@ -95,13 +104,11 @@ function App() {
     }
   }, [streakCount, bestRecord]);
 
-  // Timer Countdown Logic
+  // Pomodoro Effect
   useEffect(() => {
     let interval = null;
     if (isTimerRunning && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft(prev => prev - 1);
-      }, 1000);
+      interval = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
     } else if (timeLeft === 0 && isTimerRunning) {
       setIsTimerRunning(false);
       if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
@@ -109,6 +116,25 @@ function App() {
     return () => clearInterval(interval);
   }, [isTimerRunning, timeLeft]);
 
+  // Stopwatch Effect
+  useEffect(() => {
+    let interval = null;
+    if (isStopwatchRunning) {
+      interval = setInterval(() => setStopwatchTime(prev => prev + 1), 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isStopwatchRunning]);
+
+  // Live Clock Effect
+  useEffect(() => {
+    let interval = null;
+    if (currentView === 'timer' && mainTimerMode === 'clock') {
+      interval = setInterval(() => setCurrentTime(new Date()), 1000);
+    }
+    return () => clearInterval(interval);
+  }, [currentView, mainTimerMode]);
+
+  // Pomodoro Actions
   const toggleTimer = () => setIsTimerRunning(!isTimerRunning);
   const resetTimer = () => {
     setIsTimerRunning(false);
@@ -119,11 +145,22 @@ function App() {
     setIsTimerRunning(false);
     setTimeLeft(mode === 'focus' ? 25 * 60 : 5 * 60);
   };
+
+  // Stopwatch Actions
+  const toggleStopwatch = () => setIsStopwatchRunning(!isStopwatchRunning);
+  const resetStopwatch = () => {
+    setIsStopwatchRunning(false);
+    setStopwatchTime(0);
+  };
   
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');
     const s = (seconds % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
+  };
+
+  const formatClock = (date) => {
+    return new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(date);
   };
 
   const getProgressBgColor = (percent) => {
@@ -148,15 +185,8 @@ function App() {
     setTodos([...todos, newTodo]);
     setInputValue('');
   };
-
-  const toggleTodo = (id) => {
-    setTodos(todos.map((todo) => todo.id === id ? { ...todo, completed: !todo.completed } : todo));
-  };
-
-  const deleteTodo = (id, e) => { 
-    e.stopPropagation(); 
-    setTodos(todos.filter((todo) => todo.id !== id)); 
-  };
+  const toggleTodo = (id) => setTodos(todos.map((todo) => todo.id === id ? { ...todo, completed: !todo.completed } : todo));
+  const deleteTodo = (id, e) => { e.stopPropagation(); setTodos(todos.filter((todo) => todo.id !== id)); };
 
   const dragStart = (e, position) => { dragItem.current = position; };
   const dragEnter = (e, position) => { dragOverItem.current = position; };
@@ -226,12 +256,13 @@ function App() {
 
   return (
     <div className={`min-h-screen ${bgApp} px-4 sm:px-8 pt-6 pb-16 font-sans transition-colors duration-700 flex flex-col items-center overflow-x-hidden`}>
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md flex flex-col min-h-[90vh]">
 
         {currentView === 'splash' && (
-          <div className="animate-in fade-in duration-700">
+          <div className="flex flex-col flex-1 animate-in fade-in duration-700">
             <Header />
-            <div onClick={() => setCurrentView('home')} className="flex flex-col items-center justify-center cursor-pointer group mt-8 sm:mt-16">
+            {/* flex-1 ile ekranda dikey olarak tam ortalanmış yapı */}
+            <div onClick={() => setCurrentView('home')} className="flex-1 flex flex-col items-center justify-center cursor-pointer group pb-20">
               
               <h1 className="text-4xl font-extrabold mb-10 tracking-tight transition-transform group-hover:-translate-y-2 duration-500">Daily Journal</h1>
               
@@ -248,7 +279,6 @@ function App() {
                 </div>
               </div>
               
-              {/* Motive Edici Call-to-Action */}
               <p className={`mt-20 px-6 py-3 rounded-full text-sm font-bold uppercase tracking-[0.2em] transition-all animate-pulse ${isDarkMode ? 'bg-[#1C1C1E] text-white hover:bg-gray-800' : 'bg-gray-100 text-gray-900 hover:bg-gray-200'}`}>
                 Start to build
               </p>
@@ -258,7 +288,7 @@ function App() {
         )}
 
         {currentView === 'home' && (
-          <div className="space-y-6 animate-in slide-in-from-right-8 fade-in duration-500">
+          <div className="space-y-6 animate-in slide-in-from-right-8 fade-in duration-500 w-full">
             <Header onBack={() => setCurrentView('splash')} />
             
             <div className="px-2 mb-6">
@@ -269,11 +299,17 @@ function App() {
                   type="text" 
                   placeholder="Set your focus for today..." 
                   value={dailyIntention} 
-                  onChange={(e) => setDailyIntention(e.target.value)} 
+                  onChange={(e) => setDailyIntention(e.target.value)}
+                  onFocus={() => setIsIntentionFocused(true)}
+                  onBlur={() => setTimeout(() => setIsIntentionFocused(false), 150)} // Blur gecikmesi çarpı butonu tıklamasını yakalar
                   className={`w-full text-base font-semibold outline-none bg-transparent transition-all border-b-2 border-transparent focus:border-gray-300 dark:focus:border-gray-700 pb-2 pr-8 ${isDarkMode ? 'text-gray-200 placeholder-gray-600' : 'text-gray-800 placeholder-gray-400'}`} 
                 />
-                {dailyIntention && (
-                  <button onClick={() => setDailyIntention('')} className="absolute right-0 top-0.5 p-1 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                {/* Sadece odaklandığında ve yazı varken görünen X butonu */}
+                {dailyIntention && isIntentionFocused && (
+                  <button 
+                    onMouseDown={(e) => { e.preventDefault(); setDailyIntention(''); }} // preventDefault ile input odağını kaybetmez
+                    className="absolute right-0 top-0.5 p-1 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                  >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
                   </button>
                 )}
@@ -281,7 +317,6 @@ function App() {
             </div>
 
             <div className="flex flex-col gap-4 sm:gap-5 pb-6">
-              {/* Chain Card */}
               <div onClick={() => setCurrentView('calendar')} className={`cursor-pointer rounded-[2.5rem] p-6 shadow-sm ${bgCard} hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-between h-[130px]`}>
                 <div className="flex flex-col justify-center h-full">
                   <h2 className="text-2xl font-black tracking-tight mb-1">Chain</h2>
@@ -300,7 +335,6 @@ function App() {
                 </div>
               </div>
 
-              {/* Tasks Card */}
               <div onClick={() => setCurrentView('tasks')} className={`cursor-pointer rounded-[2.5rem] p-6 shadow-sm ${bgCard} hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-between h-[130px]`}>
                 <div className="flex flex-col justify-center h-full">
                   <h2 className="text-2xl font-black tracking-tight mb-1">Tasks</h2>
@@ -311,15 +345,17 @@ function App() {
                 </div>
               </div>
 
-              {/* Focus Timer Card */}
+              {/* Timer Card - Sadece "Timer" yazıyor */}
               <div onClick={() => setCurrentView('timer')} className={`cursor-pointer rounded-[2.5rem] p-6 shadow-sm ${bgCard} hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-between h-[130px]`}>
                 <div className="flex flex-col justify-center h-full">
-                  <h2 className="text-2xl font-black tracking-tight mb-1">Focus Timer</h2>
-                  <p className={`text-sm font-bold ${isTimerRunning ? 'text-emerald-500 animate-pulse' : textMuted}`}>
-                    {isTimerRunning ? `Running: ${formatTime(timeLeft)}` : (timerMode === 'focus' ? '25 Min Focus' : '5 Min Break')}
+                  <h2 className="text-2xl font-black tracking-tight mb-1">Timer</h2>
+                  <p className={`text-sm font-bold ${isTimerRunning || isStopwatchRunning ? 'text-emerald-500 animate-pulse' : textMuted}`}>
+                    {isTimerRunning ? `Pomodoro: ${formatTime(timeLeft)}` : 
+                     isStopwatchRunning ? `Stopwatch: ${formatTime(stopwatchTime)}` : 
+                     'Pomodoro, Stopwatch, Clock'}
                   </p>
                 </div>
-                <div className={`w-[56px] h-[56px] rounded-full flex items-center justify-center shrink-0 transition-all ${isTimerRunning ? 'bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.5)]' : (isDarkMode ? 'bg-[#2C2C2E] text-white' : 'bg-gray-100 text-gray-800')}`}>
+                <div className={`w-[56px] h-[56px] rounded-full flex items-center justify-center shrink-0 transition-all ${isTimerRunning || isStopwatchRunning ? 'bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.5)]' : (isDarkMode ? 'bg-[#2C2C2E] text-white' : 'bg-gray-100 text-gray-800')}`}>
                    <svg className="w-6 h-6 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </div>
               </div>
@@ -376,34 +412,71 @@ function App() {
             <Header onBack={() => setCurrentView('home')} />
             
             <div className="mb-6 px-2 text-center">
-              <h2 className="text-4xl font-black tracking-tight mb-2">Focus Timer</h2>
-              <p className={`text-sm font-bold uppercase tracking-widest ${textMuted}`}>Pomodoro Technique</p>
+              <h2 className="text-4xl font-black tracking-tight mb-2">Timer</h2>
             </div>
 
             <div className={`rounded-[2.5rem] p-8 sm:p-10 shadow-sm ${bgCard} flex flex-col items-center justify-center`}>
               
-              <div className={`flex p-1.5 rounded-2xl mb-10 ${isDarkMode ? 'bg-[#2C2C2E]' : 'bg-gray-100'}`}>
-                <button onClick={() => switchTimerMode('focus')} className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all ${timerMode === 'focus' ? (isDarkMode ? 'bg-[#1C1C1E] text-white shadow-sm' : 'bg-white text-gray-900 shadow-sm') : textMuted}`}>Focus</button>
-                <button onClick={() => switchTimerMode('break')} className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all ${timerMode === 'break' ? (isDarkMode ? 'bg-[#1C1C1E] text-white shadow-sm' : 'bg-white text-gray-900 shadow-sm') : textMuted}`}>Break</button>
+              {/* Ana Mod Geçişi (Apple tarzı Segmented Control) */}
+              <div className={`flex w-full max-w-[320px] p-1.5 rounded-2xl mb-10 ${isDarkMode ? 'bg-[#2C2C2E]' : 'bg-gray-100'}`}>
+                {['pomodoro', 'stopwatch', 'clock'].map(mode => (
+                  <button 
+                    key={mode}
+                    onClick={() => setMainTimerMode(mode)} 
+                    className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all capitalize ${mainTimerMode === mode ? (isDarkMode ? 'bg-[#1C1C1E] text-white shadow-sm' : 'bg-white text-gray-900 shadow-sm') : textMuted}`}
+                  >
+                    {mode}
+                  </button>
+                ))}
               </div>
 
-              <div className={`text-7xl sm:text-8xl font-black tracking-tighter mb-12 tabular-nums transition-colors duration-500 ${isTimerRunning ? 'text-emerald-500' : (isDarkMode ? 'text-white' : 'text-gray-900')}`}>
-                {formatTime(timeLeft)}
-              </div>
+              {/* POMODORO MODU */}
+              {mainTimerMode === 'pomodoro' && (
+                <>
+                  <div className={`flex p-1 rounded-xl mb-8 ${isDarkMode ? 'bg-[#1C1C1E] border border-[#2C2C2E]' : 'bg-white border border-gray-200'}`}>
+                    <button onClick={() => switchTimerMode('focus')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${timerMode === 'focus' ? (isDarkMode ? 'bg-[#2C2C2E] text-white' : 'bg-gray-100 text-gray-900') : textMuted}`}>Focus</button>
+                    <button onClick={() => switchTimerMode('break')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${timerMode === 'break' ? (isDarkMode ? 'bg-[#2C2C2E] text-white' : 'bg-gray-100 text-gray-900') : textMuted}`}>Break</button>
+                  </div>
+                  <div className={`text-7xl sm:text-8xl font-black tracking-tighter mb-12 tabular-nums transition-colors duration-500 ${isTimerRunning ? 'text-emerald-500' : (isDarkMode ? 'text-white' : 'text-gray-900')}`}>
+                    {formatTime(timeLeft)}
+                  </div>
+                  <div className="flex items-center gap-6">
+                    <button onClick={resetTimer} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all active:scale-90 ${isDarkMode ? 'bg-[#2C2C2E] text-gray-400 hover:text-white' : 'bg-gray-100 text-gray-500 hover:text-gray-900'}`}>
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                    </button>
+                    <button onClick={toggleTimer} className={`w-20 h-20 rounded-full flex items-center justify-center transition-all active:scale-95 shadow-lg ${isTimerRunning ? 'bg-amber-500 text-white shadow-amber-500/40' : 'bg-emerald-500 text-white shadow-emerald-500/40'}`}>
+                      {isTimerRunning ? ( <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg> ) : ( <svg className="w-9 h-9 ml-1" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg> )}
+                    </button>
+                  </div>
+                </>
+              )}
 
-              <div className="flex items-center gap-6">
-                <button onClick={resetTimer} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all active:scale-90 ${isDarkMode ? 'bg-[#2C2C2E] text-gray-400 hover:text-white' : 'bg-gray-100 text-gray-500 hover:text-gray-900'}`}>
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                </button>
-                
-                <button onClick={toggleTimer} className={`w-20 h-20 rounded-full flex items-center justify-center transition-all active:scale-95 shadow-lg ${isTimerRunning ? 'bg-amber-500 text-white shadow-amber-500/40' : 'bg-emerald-500 text-white shadow-emerald-500/40'}`}>
-                  {isTimerRunning ? (
-                    <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
-                  ) : (
-                    <svg className="w-9 h-9 ml-1" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
-                  )}
-                </button>
-              </div>
+              {/* STOPWATCH MODU */}
+              {mainTimerMode === 'stopwatch' && (
+                <>
+                  <div className={`text-7xl sm:text-8xl font-black tracking-tighter mb-12 mt-8 tabular-nums transition-colors duration-500 ${isStopwatchRunning ? 'text-amber-500' : (isDarkMode ? 'text-white' : 'text-gray-900')}`}>
+                    {formatTime(stopwatchTime)}
+                  </div>
+                  <div className="flex items-center gap-6">
+                    <button onClick={resetStopwatch} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all active:scale-90 ${isDarkMode ? 'bg-[#2C2C2E] text-gray-400 hover:text-white' : 'bg-gray-100 text-gray-500 hover:text-gray-900'}`}>
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                    </button>
+                    <button onClick={toggleStopwatch} className={`w-20 h-20 rounded-full flex items-center justify-center transition-all active:scale-95 shadow-lg ${isStopwatchRunning ? 'bg-amber-500 text-white shadow-amber-500/40' : 'bg-emerald-500 text-white shadow-emerald-500/40'}`}>
+                      {isStopwatchRunning ? ( <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg> ) : ( <svg className="w-9 h-9 ml-1" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg> )}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* CLOCK MODU */}
+              {mainTimerMode === 'clock' && (
+                <div className="flex flex-col items-center justify-center mt-12 mb-16">
+                  <div className={`text-5xl sm:text-7xl font-black tracking-tighter tabular-nums ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    {formatClock(currentTime)}
+                  </div>
+                  <p className={`mt-4 text-sm font-bold uppercase tracking-widest ${textMuted}`}>Local Time</p>
+                </div>
+              )}
 
             </div>
           </div>
