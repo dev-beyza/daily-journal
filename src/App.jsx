@@ -12,7 +12,6 @@ function App() {
   const monthNameLong = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(todayObj);
   const consistentDate = `${dayNameOfWeek}, ${d} ${monthNameLong}`;
 
-  // Dinamik Karşılama
   const hr = todayObj.getHours();
   let greeting = 'Good evening';
   if (hr < 12) greeting = 'Good morning';
@@ -37,24 +36,19 @@ function App() {
   const [currentView, setCurrentView] = useState('splash'); 
   const [inputValue, setInputValue] = useState('');
   
-  // Intention State ve Akıllı Odaklanma (Focus) Kontrolü
   const [dailyIntention, setDailyIntention] = useState(() => localStorage.getItem('dailyIntention') || '');
   const [isIntentionFocused, setIsIntentionFocused] = useState(false);
   const [bestRecord, setBestRecord] = useState(() => JSON.parse(localStorage.getItem('bestRecord')) || 0);
 
-  // Timer Ana Modları: 'pomodoro', 'stopwatch', 'clock'
   const [mainTimerMode, setMainTimerMode] = useState('pomodoro');
   
-  // Pomodoro State
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
-  const [timerMode, setTimerMode] = useState('focus'); // 'focus' veya 'break'
+  const [timerMode, setTimerMode] = useState('focus');
 
-  // Stopwatch State
   const [stopwatchTime, setStopwatchTime] = useState(0);
   const [isStopwatchRunning, setIsStopwatchRunning] = useState(false);
 
-  // Clock State
   const [currentTime, setCurrentTime] = useState(new Date());
 
   const [dragId, setDragId] = useState(null);
@@ -72,6 +66,7 @@ function App() {
 
   const completedCount = todos.filter((t) => t.completed).length;
   const progressPercentage = todos.length > 0 ? Math.round((completedCount / todos.length) * 100) : 0;
+  const isCompleted = progressPercentage === 100;
 
   useEffect(() => {
     if (todos.length > 0) {
@@ -96,7 +91,9 @@ function App() {
     }
     return count;
   };
+  
   const streakCount = getStreak();
+  const activeDay = isCompleted ? streakCount : streakCount + 1;
 
   useEffect(() => {
     if (streakCount > bestRecord) {
@@ -104,7 +101,6 @@ function App() {
     }
   }, [streakCount, bestRecord]);
 
-  // Pomodoro Effect
   useEffect(() => {
     let interval = null;
     if (isTimerRunning && timeLeft > 0) {
@@ -116,7 +112,6 @@ function App() {
     return () => clearInterval(interval);
   }, [isTimerRunning, timeLeft]);
 
-  // Stopwatch Effect
   useEffect(() => {
     let interval = null;
     if (isStopwatchRunning) {
@@ -125,7 +120,6 @@ function App() {
     return () => clearInterval(interval);
   }, [isStopwatchRunning]);
 
-  // Live Clock Effect
   useEffect(() => {
     let interval = null;
     if (currentView === 'timer' && mainTimerMode === 'clock') {
@@ -134,7 +128,6 @@ function App() {
     return () => clearInterval(interval);
   }, [currentView, mainTimerMode]);
 
-  // Pomodoro Actions
   const toggleTimer = () => setIsTimerRunning(!isTimerRunning);
   const resetTimer = () => {
     setIsTimerRunning(false);
@@ -146,7 +139,6 @@ function App() {
     setTimeLeft(mode === 'focus' ? 25 * 60 : 5 * 60);
   };
 
-  // Stopwatch Actions
   const toggleStopwatch = () => setIsStopwatchRunning(!isStopwatchRunning);
   const resetStopwatch = () => {
     setIsStopwatchRunning(false);
@@ -159,8 +151,15 @@ function App() {
     return `${m}:${s}`;
   };
 
-  const formatClock = (date) => {
-    return new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(date);
+  // Apple Tarzı, Saniyesiz ve Ayrıştırılmış Saat Formatlayıcı
+  const formatClockParts = (date) => {
+    const timeString = new Intl.DateTimeFormat('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit', 
+      hour12: true 
+    }).format(date);
+    const [time, period] = timeString.split(' ');
+    return { time, period };
   };
 
   const getProgressBgColor = (percent) => {
@@ -261,7 +260,6 @@ function App() {
         {currentView === 'splash' && (
           <div className="flex flex-col flex-1 animate-in fade-in duration-700">
             <Header />
-            {/* flex-1 ile ekranda dikey olarak tam ortalanmış yapı */}
             <div onClick={() => setCurrentView('home')} className="flex-1 flex flex-col items-center justify-center cursor-pointer group pb-20">
               
               <h1 className="text-4xl font-extrabold mb-10 tracking-tight transition-transform group-hover:-translate-y-2 duration-500">Daily Journal</h1>
@@ -273,7 +271,7 @@ function App() {
                 </svg>
                 
                 <div className="absolute flex flex-col items-center">
-                  <span className={`text-xs font-black uppercase tracking-widest mb-1 ${textMuted}`}>Day {streakCount}</span>
+                  <span className={`text-xs font-black uppercase tracking-widest mb-1 ${textMuted}`}>Day {activeDay}</span>
                   <span className={`text-6xl font-black tracking-tighter ${isCompleted ? (isDarkMode ? 'text-emerald-400' : 'text-emerald-500') : ''}`}>{progressPercentage}%</span>
                   <span className={`text-[10px] font-bold uppercase tracking-widest mt-1 transition-opacity ${isCompleted ? 'opacity-100 text-emerald-500' : 'opacity-0'}`}>Completed</span>
                 </div>
@@ -301,13 +299,12 @@ function App() {
                   value={dailyIntention} 
                   onChange={(e) => setDailyIntention(e.target.value)}
                   onFocus={() => setIsIntentionFocused(true)}
-                  onBlur={() => setTimeout(() => setIsIntentionFocused(false), 150)} // Blur gecikmesi çarpı butonu tıklamasını yakalar
+                  onBlur={() => setTimeout(() => setIsIntentionFocused(false), 150)}
                   className={`w-full text-base font-semibold outline-none bg-transparent transition-all border-b-2 border-transparent focus:border-gray-300 dark:focus:border-gray-700 pb-2 pr-8 ${isDarkMode ? 'text-gray-200 placeholder-gray-600' : 'text-gray-800 placeholder-gray-400'}`} 
                 />
-                {/* Sadece odaklandığında ve yazı varken görünen X butonu */}
                 {dailyIntention && isIntentionFocused && (
                   <button 
-                    onMouseDown={(e) => { e.preventDefault(); setDailyIntention(''); }} // preventDefault ile input odağını kaybetmez
+                    onMouseDown={(e) => { e.preventDefault(); setDailyIntention(''); }} 
                     className="absolute right-0 top-0.5 p-1 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -320,7 +317,7 @@ function App() {
               <div onClick={() => setCurrentView('calendar')} className={`cursor-pointer rounded-[2.5rem] p-6 shadow-sm ${bgCard} hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-between h-[130px]`}>
                 <div className="flex flex-col justify-center h-full">
                   <h2 className="text-2xl font-black tracking-tight mb-1">Chain</h2>
-                  <p className={`text-sm font-bold mb-2 ${textMuted}`}>Level {streakCount}</p>
+                  <p className={`text-sm font-bold mb-2 ${textMuted}`}>Day {activeDay}</p>
                   <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${isDarkMode ? 'bg-[#2C2C2E] text-yellow-500' : 'bg-yellow-50 text-yellow-600 border border-yellow-100'}`}>
                     <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM5.5 5.5A.75.75 0 016 6v3.25a4.25 4.25 0 008.5 0V6a.75.75 0 011.5 0v3.25a5.75 5.75 0 01-11.5 0V6a.75.75 0 01.5-.5z" clipRule="evenodd" /><path fillRule="evenodd" d="M10 13a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 13z" clipRule="evenodd" /><path d="M6 18h8v1.5H6V18z" /></svg>
                     Best: {bestRecord}
@@ -345,7 +342,6 @@ function App() {
                 </div>
               </div>
 
-              {/* Timer Card - Sadece "Timer" yazıyor */}
               <div onClick={() => setCurrentView('timer')} className={`cursor-pointer rounded-[2.5rem] p-6 shadow-sm ${bgCard} hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-between h-[130px]`}>
                 <div className="flex flex-col justify-center h-full">
                   <h2 className="text-2xl font-black tracking-tight mb-1">Timer</h2>
@@ -417,7 +413,6 @@ function App() {
 
             <div className={`rounded-[2.5rem] p-8 sm:p-10 shadow-sm ${bgCard} flex flex-col items-center justify-center`}>
               
-              {/* Ana Mod Geçişi (Apple tarzı Segmented Control) */}
               <div className={`flex w-full max-w-[320px] p-1.5 rounded-2xl mb-10 ${isDarkMode ? 'bg-[#2C2C2E]' : 'bg-gray-100'}`}>
                 {['pomodoro', 'stopwatch', 'clock'].map(mode => (
                   <button 
@@ -430,7 +425,6 @@ function App() {
                 ))}
               </div>
 
-              {/* POMODORO MODU */}
               {mainTimerMode === 'pomodoro' && (
                 <>
                   <div className={`flex p-1 rounded-xl mb-8 ${isDarkMode ? 'bg-[#1C1C1E] border border-[#2C2C2E]' : 'bg-white border border-gray-200'}`}>
@@ -451,7 +445,6 @@ function App() {
                 </>
               )}
 
-              {/* STOPWATCH MODU */}
               {mainTimerMode === 'stopwatch' && (
                 <>
                   <div className={`text-7xl sm:text-8xl font-black tracking-tighter mb-12 mt-8 tabular-nums transition-colors duration-500 ${isStopwatchRunning ? 'text-amber-500' : (isDarkMode ? 'text-white' : 'text-gray-900')}`}>
@@ -468,13 +461,13 @@ function App() {
                 </>
               )}
 
-              {/* CLOCK MODU */}
               {mainTimerMode === 'clock' && (
-                <div className="flex flex-col items-center justify-center mt-12 mb-16">
-                  <div className={`text-5xl sm:text-7xl font-black tracking-tighter tabular-nums ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    {formatClock(currentTime)}
+                <div className="flex flex-col items-center justify-center mt-8 mb-12">
+                  <div className={`flex items-baseline justify-center tracking-tighter tabular-nums ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    <span className="text-7xl sm:text-8xl font-black">{formatClockParts(currentTime).time}</span>
+                    <span className="text-2xl sm:text-3xl font-extrabold ml-3 text-gray-400">{formatClockParts(currentTime).period}</span>
                   </div>
-                  <p className={`mt-4 text-sm font-bold uppercase tracking-widest ${textMuted}`}>Local Time</p>
+                  <p className={`mt-6 text-sm font-bold uppercase tracking-widest ${textMuted}`}>Local Time</p>
                 </div>
               )}
 
