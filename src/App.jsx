@@ -66,6 +66,8 @@ function App() {
 
   const completedCount = todos.filter((t) => t.completed).length;
   const progressPercentage = todos.length > 0 ? Math.round((completedCount / todos.length) * 100) : 0;
+  
+  // Burada SADECE BİR KERE tanımlandı!
   const isCompleted = progressPercentage === 100;
 
   useEffect(() => {
@@ -151,7 +153,6 @@ function App() {
     return `${m}:${s}`;
   };
 
-  // Apple Tarzı, Saniyesiz ve Ayrıştırılmış Saat Formatlayıcı
   const formatClockParts = (date) => {
     const timeString = new Intl.DateTimeFormat('en-US', { 
       hour: 'numeric', 
@@ -224,7 +225,6 @@ function App() {
   const radius = 35;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (progressPercentage / 100) * circumference;
-  const isCompleted = progressPercentage === 100;
 
   const bigRadius = 90;
   const bigCircumference = 2 * Math.PI * bigRadius;
@@ -277,9 +277,10 @@ function App() {
                 </div>
               </div>
               
-              <p className={`mt-20 px-6 py-3 rounded-full text-sm font-bold uppercase tracking-[0.2em] transition-all animate-pulse ${isDarkMode ? 'bg-[#1C1C1E] text-white hover:bg-gray-800' : 'bg-gray-100 text-gray-900 hover:bg-gray-200'}`}>
+              <div className={`mt-20 px-8 py-3.5 rounded-full text-sm font-bold uppercase tracking-[0.2em] transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 ${isDarkMode ? 'bg-[#2C2C2E] text-gray-100 hover:bg-[#3A3A3C]' : 'bg-[#2C2C2E] text-white hover:bg-gray-800'}`}>
                 Start to build
-              </p>
+                <svg className="w-4 h-4 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
+              </div>
               
             </div>
           </div>
