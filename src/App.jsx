@@ -67,7 +67,6 @@ function App() {
   const completedCount = todos.filter((t) => t.completed).length;
   const progressPercentage = todos.length > 0 ? Math.round((completedCount / todos.length) * 100) : 0;
   
-  // Burada SADECE BİR KERE tanımlandı!
   const isCompleted = progressPercentage === 100;
 
   useEffect(() => {
@@ -260,27 +259,31 @@ function App() {
         {currentView === 'splash' && (
           <div className="flex flex-col flex-1 animate-in fade-in duration-700">
             <Header />
-            <div onClick={() => setCurrentView('home')} className="flex-1 flex flex-col items-center justify-center cursor-pointer group pb-20">
+            <div onClick={() => setCurrentView('home')} className="flex-1 flex flex-col items-center cursor-pointer w-full h-full group">
               
-              <h1 className="text-4xl font-extrabold mb-10 tracking-tight transition-transform group-hover:-translate-y-2 duration-500">Daily Journal</h1>
+              <div className="flex-[1]"></div>
               
-              <div className={`relative flex items-center justify-center transition-all duration-700 transform group-hover:scale-110 active:scale-95 ${isCompleted ? 'drop-shadow-[0_0_25px_rgba(16,185,129,0.4)]' : ''}`}>
-                <svg className="w-[240px] h-[240px] transform -rotate-90" viewBox="0 0 200 200">
-                  <circle cx="100" cy="100" r={bigRadius} stroke="currentColor" strokeWidth="12" fill="transparent" className={isDarkMode ? 'text-[#2C2C2E]' : 'text-gray-200'} />
-                  <circle cx="100" cy="100" r={bigRadius} stroke="currentColor" strokeWidth="12" fill="transparent" strokeDasharray={bigCircumference} strokeDashoffset={bigStrokeDashoffset} strokeLinecap="round" className={`transition-all duration-1500 ease-out ${getProgressTextColor(progressPercentage)}`} />
-                </svg>
+              <div className="flex flex-col items-center justify-center transition-all duration-700">
+                {/* Modern, Titanyum Gradyanlı ve TAMAMI BÜYÜK HARF Logo */}
+                <h1 className="text-3xl sm:text-4xl font-extrabold uppercase tracking-tighter mb-10 bg-gradient-to-br from-gray-800 to-gray-500 dark:from-gray-100 dark:to-gray-400 text-transparent bg-clip-text drop-shadow-sm transition-transform group-hover:-translate-y-2 duration-500">
+                  DAILY JOURNAL
+                </h1>
                 
-                <div className="absolute flex flex-col items-center">
-                  <span className={`text-xs font-black uppercase tracking-widest mb-1 ${textMuted}`}>Day {activeDay}</span>
-                  <span className={`text-6xl font-black tracking-tighter ${isCompleted ? (isDarkMode ? 'text-emerald-400' : 'text-emerald-500') : ''}`}>{progressPercentage}%</span>
-                  <span className={`text-[10px] font-bold uppercase tracking-widest mt-1 transition-opacity ${isCompleted ? 'opacity-100 text-emerald-500' : 'opacity-0'}`}>Completed</span>
+                <div className={`relative flex items-center justify-center transition-all duration-700 transform group-hover:scale-105 active:scale-95 ${isCompleted ? 'drop-shadow-[0_0_25px_rgba(16,185,129,0.4)]' : ''}`}>
+                  <svg className="w-[240px] h-[240px] transform -rotate-90" viewBox="0 0 200 200">
+                    <circle cx="100" cy="100" r={bigRadius} stroke="currentColor" strokeWidth="12" fill="transparent" className={isDarkMode ? 'text-[#2C2C2E]' : 'text-gray-200'} />
+                    <circle cx="100" cy="100" r={bigRadius} stroke="currentColor" strokeWidth="12" fill="transparent" strokeDasharray={bigCircumference} strokeDashoffset={bigStrokeDashoffset} strokeLinecap="round" className={`transition-all duration-1500 ease-out ${getProgressTextColor(progressPercentage)}`} />
+                  </svg>
+                  
+                  <div className="absolute flex flex-col items-center">
+                    <span className={`text-xs font-black uppercase tracking-widest mb-1 ${textMuted}`}>Day {activeDay}</span>
+                    <span className={`text-6xl font-black tracking-tighter ${isCompleted ? (isDarkMode ? 'text-emerald-400' : 'text-emerald-500') : ''}`}>{progressPercentage}%</span>
+                    <span className={`text-[10px] font-bold uppercase tracking-widest mt-1 transition-opacity ${isCompleted ? 'opacity-100 text-emerald-500' : 'opacity-0'}`}>Completed</span>
+                  </div>
                 </div>
               </div>
-              
-              <div className={`mt-20 px-8 py-3.5 rounded-full text-sm font-bold uppercase tracking-[0.2em] transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 ${isDarkMode ? 'bg-[#2C2C2E] text-gray-100 hover:bg-[#3A3A3C]' : 'bg-[#2C2C2E] text-white hover:bg-gray-800'}`}>
-                Start to build
-                <svg className="w-4 h-4 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
-              </div>
+
+              <div className="flex-[1.618]"></div>
               
             </div>
           </div>
