@@ -264,8 +264,17 @@ function App() {
               <div className="flex-[1]"></div>
               
               <div className="flex flex-col items-center justify-center transition-all duration-700">
-                {/* Modern, Titanyum Gradyanlı ve TAMAMI BÜYÜK HARF Logo */}
-                <h1 className="text-3xl sm:text-4xl font-extrabold uppercase tracking-tighter mb-10 bg-gradient-to-br from-gray-800 to-gray-500 dark:from-gray-100 dark:to-gray-400 text-transparent bg-clip-text drop-shadow-sm transition-transform group-hover:-translate-y-2 duration-500">
+                
+                {/* 
+                  Harf aralığı "tracking-tight" yapılarak harflerin kopukluğu giderildi 
+                */}
+                <h1 
+                  className={`text-2xl sm:text-3xl uppercase tracking-tight mb-10 transition-transform group-hover:-translate-y-2 duration-500 ${isDarkMode ? 'text-white' : 'text-[#1C1C1E]'}`}
+                  style={{ 
+                    fontFamily: 'ui-rounded, "SF Pro Rounded", "Nunito", "Arial Rounded MT Bold", sans-serif',
+                    fontWeight: 800
+                  }}
+                >
                   DAILY JOURNAL
                 </h1>
                 
@@ -304,12 +313,12 @@ function App() {
                   onChange={(e) => setDailyIntention(e.target.value)}
                   onFocus={() => setIsIntentionFocused(true)}
                   onBlur={() => setTimeout(() => setIsIntentionFocused(false), 150)}
-                  className={`w-full text-base font-semibold outline-none bg-transparent transition-all border-b-2 border-transparent focus:border-gray-300 dark:focus:border-gray-700 pb-2 pr-8 ${isDarkMode ? 'text-gray-200 placeholder-gray-600' : 'text-gray-800 placeholder-gray-400'}`} 
+                  className={`w-full text-base font-semibold outline-none bg-transparent transition-all border-b-2 border-transparent focus:border-gray-300 pb-2 pr-8 ${isDarkMode ? 'text-gray-200 placeholder-gray-600 focus:border-gray-700' : 'text-gray-800 placeholder-gray-400'}`} 
                 />
                 {dailyIntention && isIntentionFocused && (
                   <button 
                     onMouseDown={(e) => { e.preventDefault(); setDailyIntention(''); }} 
-                    className="absolute right-0 top-0.5 p-1 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                    className={`absolute right-0 top-0.5 p-1 rounded-full transition-colors ${isDarkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-400 hover:text-gray-600'}`}
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
                   </button>
