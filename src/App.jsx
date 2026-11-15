@@ -266,10 +266,11 @@ function App() {
               <div className="flex flex-col items-center justify-center transition-all duration-700">
                 
                 {/* 
-                  Harf aralığı "tracking-tight" yapılarak harflerin kopukluğu giderildi 
+                  BİRAZ BÜYÜTÜLMÜŞ LOGO (text-3xl sm:text-4xl)
+                  Hala %100 zıt renkli, sıkı harf aralıklı (tracking-tight) ve yuvarlak hatlı.
                 */}
                 <h1 
-                  className={`text-2xl sm:text-3xl uppercase tracking-tight mb-10 transition-transform group-hover:-translate-y-2 duration-500 ${isDarkMode ? 'text-white' : 'text-[#1C1C1E]'}`}
+                  className={`text-3xl sm:text-4xl uppercase tracking-tight mb-10 transition-transform group-hover:-translate-y-2 duration-500 ${isDarkMode ? 'text-white' : 'text-[#1C1C1E]'}`}
                   style={{ 
                     fontFamily: 'ui-rounded, "SF Pro Rounded", "Nunito", "Arial Rounded MT Bold", sans-serif',
                     fontWeight: 800
